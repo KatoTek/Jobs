@@ -6,9 +6,15 @@ namespace Jobs.Scheduler
 {
     public class EntitiesModel : OpenAccessContext, IEntitiesModelUnitOfWork
     {
-        private static readonly BackendConfiguration Backend = GetBackendConfiguration();
-        private const string CONNECTION_STRING_NAME = "JobSchedulerConnection";
-        private static readonly MetadataSource MetadataSource = new EntitiesModelFluentMetadataSource();
+        #region fields
+
+        const string CONNECTION_STRING_NAME = "JobSchedulerConnection";
+        static readonly BackendConfiguration Backend = GetBackendConfiguration();
+        static readonly MetadataSource MetadataSource = new EntitiesModelFluentMetadataSource();
+
+        #endregion
+
+        #region constructors
 
         public EntitiesModel()
             : base(CONNECTION_STRING_NAME, Backend, MetadataSource) {}
@@ -25,15 +31,19 @@ namespace Jobs.Scheduler
         public EntitiesModel(string connection, BackendConfiguration backendConfiguration, MetadataSource metadataSource)
             : base(connection, backendConfiguration, metadataSource) {}
 
+        #endregion
+
+        #region properties
+
         public IQueryable<JobException> JobExceptions => GetAll<JobException>();
-
         public IQueryable<JobInstance> JobInstances => GetAll<JobInstance>();
-
         public IQueryable<Job> Jobs => GetAll<Job>();
-
         public IQueryable<JobSchedule> JobSchedules => GetAll<JobSchedule>();
-
         public IQueryable<JobScheduleType> JobScheduleTypes => GetAll<JobScheduleType>();
+
+        #endregion
+
+        #region methods
 
         public static BackendConfiguration GetBackendConfiguration()
         {
@@ -43,5 +53,7 @@ namespace Jobs.Scheduler
 
             return backend;
         }
+
+        #endregion
     }
 }

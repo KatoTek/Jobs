@@ -1,56 +1,62 @@
-﻿using System;
-using System.ComponentModel;
-using System.Configuration;
+﻿using System.ComponentModel;
 using System.Configuration.Install;
-using System.Linq;
-using System.Reflection;
 using System.ServiceProcess;
+using static System.Configuration.ConfigurationManager;
+using static System.Reflection.Assembly;
+using static System.ServiceProcess.ServiceStartMode;
 
-namespace JobsService
+namespace Jobs.Service
 {
     [RunInstaller(true)]
     public class JobsServiceInstaller : Installer
     {
-        private readonly IContainer _Components = null;
-        private ServiceInstaller _ServiceInstaller;
-        private ServiceProcessInstaller _ServiceProcessInstaller;
+        #region fields
+
+        readonly IContainer _Components = null;
+        ServiceInstaller _serviceInstaller;
+        ServiceProcessInstaller _serviceProcessInstaller;
+
+        #endregion
+
+        #region constructors
 
         public JobsServiceInstaller()
         {
-            this.InitializeComponent();
+            InitializeComponent();
         }
+
+        #endregion
+
+        #region methods
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (this._Components != null))
-                this._Components.Dispose();
+            if (disposing)
+                _Components?.Dispose();
+
             base.Dispose(disposing);
         }
 
-        private string GetAppSetting(string key)
+        string GetAppSetting(string key) => OpenExeConfiguration(GetAssembly(GetType())
+                                                                     .Location)
+            .AppSettings.Settings[key].Value;
+
+        void InitializeComponent()
         {
-            var config = ConfigurationManager.OpenExeConfiguration(Assembly.GetAssembly(this.GetType()).Location);
-            return config.AppSettings.Settings[key].Value;
+            _serviceProcessInstaller = new ServiceProcessInstaller();
+            _serviceInstaller = new ServiceInstaller();
+
+            _serviceProcessInstaller.Password = null;
+            _serviceProcessInstaller.Username = null;
+
+            _serviceInstaller.Description = GetAppSetting("Description");
+            _serviceInstaller.DisplayName = GetAppSetting("DisplayName");
+            _serviceInstaller.ServiceName = GetAppSetting("ServiceName");
+            _serviceInstaller.StartType = Automatic;
+
+            Installers.AddRange(new Installer[] { _serviceProcessInstaller, _serviceInstaller });
         }
 
-        private void InitializeComponent()
-        {
-            this._ServiceProcessInstaller = new ServiceProcessInstaller();
-            this._ServiceInstaller = new ServiceInstaller();
-     
-            this._ServiceProcessInstaller.Password = null;
-            this._ServiceProcessInstaller.Username = null;
-         
-            this._ServiceInstaller.Description = this.GetAppSetting("Description");
-            this._ServiceInstaller.DisplayName = this.GetAppSetting("DisplayName");
-            this._ServiceInstaller.ServiceName = this.GetAppSetting("ServiceName");
-            this._ServiceInstaller.StartType = ServiceStartMode.Automatic;
-
-            this.Installers.AddRange(new Installer[]
-                                     {
-                                         this._ServiceProcessInstaller,
-                                         this._ServiceInstaller
-                                     });
-        }
+        #endregion
     }
 }

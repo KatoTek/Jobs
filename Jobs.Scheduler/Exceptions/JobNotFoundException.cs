@@ -5,6 +5,8 @@ namespace Jobs.Scheduler.Exceptions
 {
     public class JobNotFoundException : Exception
     {
+        #region constructors
+
         public JobNotFoundException(string jobname, string connectionString)
             : base($"A job by the name of \"{jobname}\" was not found in the job scheduler data source \"{connectionString}\".") {}
 
@@ -16,5 +18,7 @@ namespace Jobs.Scheduler.Exceptions
 
         public JobNotFoundException(string jobname, string connectionString, Exception innerException)
             : base($"A job by the name of \"{jobname}\" was not found in the job scheduler data source \"{connectionString}\".", innerException) {}
+
+        #endregion
     }
 }

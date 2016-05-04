@@ -5,6 +5,8 @@ namespace Jobs.Scheduler
 {
     public class Job
     {
+        #region properties
+
         public int AlertAfterTries { get; set; }
         public string AppId { get; set; }
         public string Description { get; set; }
@@ -14,5 +16,7 @@ namespace Jobs.Scheduler
         public string JobName { get; set; }
         public IList<JobSchedule> JobSchedules { get; set; } = new List<JobSchedule>();
         public DateTime LastRun { get; set; }
+
+        #endregion
     }
 }

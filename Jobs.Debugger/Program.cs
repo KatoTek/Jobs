@@ -1,34 +1,35 @@
-﻿using System;
-using System.Linq;
-using Jobs.Service;
-using JobsService;
+﻿using static System.Console;
 
-namespace JobsServiceDebugger
+namespace Jobs.Debugger
 {
-    internal class Program
+    class Program
     {
-        private static void Main(string[] args)
-        {
-            new JobsService().Start();
-        }
+        #region methods
 
-        public class JobsService : Service
+        static void Main() => new JobsService().Start();
+
+        #endregion
+
+        #region nested types
+
+        public class JobsService : Service.Service
         {
+            #region constructors
+
             public JobsService()
             {
-                this.ServiceName = base.ServiceName;
-
-                this.OnLog += Console.WriteLine;
+                OnLog += WriteLine;
             }
 
-            public void Start()
-            {
-                this.OnStart(new string[]
-                             {
-                                 "wait",
-                                 "debug"
-                             });
-            }
+            #endregion
+
+            #region methods
+
+            public void Start() => OnStart(new[] { "wait", "debug" });
+
+            #endregion
         }
+
+        #endregion
     }
 }

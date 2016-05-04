@@ -19,32 +19,33 @@ using System.Threading.Tasks;
 
 namespace Jobs.Runner
 {
-    internal class Batch : IDisposable
+    class Batch : IDisposable
     {
-        private const string ERRORED = "ERRORED";
-        private const string EXCEPTION_EMAIL_CONTENT_FORMAT = "<h1>{0}</h1>";
-        private const string FINISHED = "FINISHED";
-        private const string JOB_FORMAT = "---- JOB {1} {0} ----";
-        private const string STARTED = "STARTED";
-        private readonly List<Action<string>> _onLogSubscribers = new List<Action<string>>();
-        private List<KeyValueConfigurationElement> _appSettings = new List<KeyValueConfigurationElement>();
-        private List<ConnectionStringSettings> _connectionStrings = new List<ConnectionStringSettings>();
-        private bool _disposed;
-        private List<IJob> _jobs = new List<IJob>();
+        #region fields
 
-        public void Dispose()
-        {
-            Dispose(true);
-            SuppressFinalize(this);
-        }
+        const string ERRORED = "ERRORED";
+        const string EXCEPTION_EMAIL_CONTENT_FORMAT = "<h1>{0}</h1>";
+        const string FINISHED = "FINISHED";
+        const string JOB_FORMAT = "---- JOB {1} {0} ----";
+        const string STARTED = "STARTED";
+        readonly List<Action<string>> _onLogSubscribers = new List<Action<string>>();
+        List<KeyValueConfigurationElement> _appSettings = new List<KeyValueConfigurationElement>();
+        List<ConnectionStringSettings> _connectionStrings = new List<ConnectionStringSettings>();
+        bool _disposed;
+        List<IJob> _jobs = new List<IJob>();
+
+        #endregion
+
+        #region constructors
 
         ~Batch()
         {
             Dispose(false);
         }
 
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
-        private event Action<string> _onLog;
+        #endregion
+
+        #region events
 
         public event Action<string> OnLog
         {
@@ -61,6 +62,19 @@ namespace Jobs.Runner
                 _onLog -= value;
                 _onLogSubscribers.Remove(value);
             }
+        }
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        event Action<string> _onLog;
+
+        #endregion
+
+        #region methods
+
+        public void Dispose()
+        {
+            Dispose(true);
+            SuppressFinalize(this);
         }
 
         internal void Run()
@@ -97,7 +111,7 @@ namespace Jobs.Runner
             return true;
         }
 
-        private void Dispose(bool disposing)
+        void Dispose(bool disposing)
         {
             if (_disposed)
                 return;
@@ -119,7 +133,7 @@ namespace Jobs.Runner
             _disposed = true;
         }
 
-        private void LoadConfiguration()
+        void LoadConfiguration()
         {
             var configuration = OpenExeConfiguration(None);
 
@@ -134,29 +148,35 @@ namespace Jobs.Runner
             RefreshSection("appSettings");
         }
 
-        private void Log(string message) => _onLog?.Invoke(message);
-        private void Log(Exception exception) => Log(exception.ToText());
+        void Log(string message) => _onLog?.Invoke(message);
+        void Log(Exception exception) => Log(exception.ToText());
 
-        private void OnExceptionThrown(object sender, JobExceptionThrownEventArguments args)
+        void OnExceptionThrown(object sender, JobExceptionThrownEventArguments args)
         {
             if (!args.RunnerIgnoresExceptions)
                 SendException(args.Exception, args.Job);
         }
 
-        private void RunJob(IJob job)
+        void RunJob(IJob job)
         {
             job.ExceptionThrown += OnExceptionThrown;
             job.OnLog += _onLog;
 
             try
             {
-                Log(Format(JOB_FORMAT, STARTED, job.GetType().FullName));
+                Log(Format(JOB_FORMAT,
+                           STARTED,
+                           job.GetType()
+                              .FullName));
 
                 job.Run();
             }
             catch (Exception exception)
             {
-                Log(Format(JOB_FORMAT, ERRORED, job.GetType().FullName));
+                Log(Format(JOB_FORMAT,
+                           ERRORED,
+                           job.GetType()
+                              .FullName));
 
                 SendException(exception, job);
             }
@@ -165,19 +185,25 @@ namespace Jobs.Runner
                 job.ExceptionThrown -= OnExceptionThrown;
                 job.OnLog -= _onLog;
 
-                Log(Format(JOB_FORMAT, FINISHED, job.GetType().FullName));
+                Log(Format(JOB_FORMAT,
+                           FINISHED,
+                           job.GetType()
+                              .FullName));
 
                 job.Dispose();
             }
         }
 
-        private void SendException(Exception exception, IJob job)
+        void SendException(Exception exception, IJob job)
         {
             Log(exception);
-            Send(EXCEPTION_EMAIL_CONTENT_FORMAT.FormatWith(job.GetType().FullName), exception, MailSection);
+            Send(EXCEPTION_EMAIL_CONTENT_FORMAT.FormatWith(job.GetType()
+                                                              .FullName),
+                 exception,
+                 MailSection);
         }
 
-        private bool TryAppSettings(System.Configuration.Configuration configuration, out List<KeyValueConfigurationElement> safeSettings)
+        bool TryAppSettings(System.Configuration.Configuration configuration, out List<KeyValueConfigurationElement> safeSettings)
         {
             safeSettings = new List<KeyValueConfigurationElement>();
             foreach (KeyValueConfigurationElement setting in configuration.AppSettings.Settings)
@@ -194,7 +220,7 @@ namespace Jobs.Runner
             return true;
         }
 
-        private bool TryConfiguration(System.Configuration.Configuration configuration)
+        bool TryConfiguration(System.Configuration.Configuration configuration)
         {
             if (configuration == null)
                 return true;
@@ -212,7 +238,7 @@ namespace Jobs.Runner
             return true;
         }
 
-        private bool TryConnectionStrings(System.Configuration.Configuration configuration, out List<ConnectionStringSettings> safeConnectionStrings)
+        bool TryConnectionStrings(System.Configuration.Configuration configuration, out List<ConnectionStringSettings> safeConnectionStrings)
         {
             safeConnectionStrings = new List<ConnectionStringSettings>();
             foreach (ConnectionStringSettings connectionString in configuration.ConnectionStrings.ConnectionStrings)
@@ -229,7 +255,7 @@ namespace Jobs.Runner
             return true;
         }
 
-        private void UnloadConfiguration()
+        void UnloadConfiguration()
         {
             var configuration = OpenExeConfiguration(None);
 
@@ -243,5 +269,7 @@ namespace Jobs.Runner
             RefreshSection("connectionStrings");
             RefreshSection("appSettings");
         }
+
+        #endregion
     }
 }

@@ -4,6 +4,8 @@ namespace Jobs.Runner.Configuration
 {
     public class PluginPath : ConfigurationElement
     {
+        #region properties
+
         [ConfigurationProperty("folderpath", IsRequired = true)]
         public string FolderPath => base["folderpath"] as string;
 
@@ -12,5 +14,7 @@ namespace Jobs.Runner.Configuration
 
         [ConfigurationProperty("searchpattern", IsRequired = false, DefaultValue = "*.dll")]
         public string SearchPattern => base["searchpattern"] as string;
+
+        #endregion
     }
 }

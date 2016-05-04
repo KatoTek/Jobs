@@ -4,6 +4,8 @@ namespace Jobs.Scheduler
 {
     public class JobException
     {
+        #region properties
+
         public int? ChildId { get; set; }
         public DateTime? Date { get; set; }
         public string HelpLink { get; set; }
@@ -15,5 +17,7 @@ namespace Jobs.Scheduler
         public string Source { get; set; }
         public string StackTrace { get; set; }
         public string Type { get; set; }
+
+        #endregion
     }
 }

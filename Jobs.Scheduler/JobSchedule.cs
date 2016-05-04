@@ -4,6 +4,8 @@ namespace Jobs.Scheduler
 {
     public class JobSchedule
     {
+        #region properties
+
         public int AllowedDelayDays { get; set; }
         public bool April { get; set; }
         public bool August { get; set; }
@@ -66,5 +68,7 @@ namespace Jobs.Scheduler
         public bool TwentyTwo { get; set; }
         public bool Two { get; set; }
         public bool Wednesday { get; set; }
+
+        #endregion
     }
 }

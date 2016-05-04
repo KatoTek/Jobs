@@ -10,10 +10,10 @@ using System.Runtime.InteropServices;
 #endif
 [assembly: AssemblyCompany("KatoTek")]
 [assembly: AssemblyProduct("Jobs")]
-[assembly: AssemblyCopyright("Copyright © KatoTek 2015")]
+[assembly: AssemblyCopyright("Copyright © KatoTek 2016")]
 [assembly: AssemblyTrademark("KatoTek®")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
 [assembly: Guid("d33b834b-1e1d-4058-8ad2-77dd3904cc07")]
-[assembly: AssemblyVersion("1.2.15.814")]
-[assembly: AssemblyFileVersion("1.2.15.814")]
+[assembly: AssemblyVersion("1.3.16.504")]
+[assembly: AssemblyFileVersion("1.3.16.504")]

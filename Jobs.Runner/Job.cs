@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics.CodeAnalysis;
 using Encompass.Simple.Extensions;
+using static System.Configuration.ConfigurationManager;
 using static System.GC;
 using static System.String;
 
@@ -10,17 +11,25 @@ namespace Jobs.Runner
 {
     public abstract class Job : IJob
     {
-        private readonly List<JobExceptionThrownEventHandler> _exceptionThrownSubscribers = new List<JobExceptionThrownEventHandler>();
-        private readonly List<Action<string>> _onLogSubscribers = new List<Action<string>>();
-        private System.Configuration.Configuration _configuration;
-        private bool _disposed;
-        protected virtual bool RunnerIgnoresExceptions => false;
+        #region fields
 
-        public void Dispose()
+        readonly List<JobExceptionThrownEventHandler> _exceptionThrownSubscribers = new List<JobExceptionThrownEventHandler>();
+        readonly List<Action<string>> _onLogSubscribers = new List<Action<string>>();
+        System.Configuration.Configuration _configuration;
+        bool _disposed;
+
+        #endregion
+
+        #region constructors
+
+        ~Job()
         {
-            Dispose(true);
-            SuppressFinalize(this);
+            Dispose(false);
         }
+
+        #endregion
+
+        #region events
 
         public event JobExceptionThrownEventHandler ExceptionThrown
         {
@@ -37,17 +46,6 @@ namespace Jobs.Runner
                 _exceptionThrown -= value;
                 _exceptionThrownSubscribers.Remove(value);
             }
-        }
-
-        public virtual System.Configuration.Configuration GetConfiguration()
-        {
-            if (_configuration == null)
-                _configuration = ConfigurationManager.OpenExeConfiguration(GetType().Assembly.Location);
-
-            if (_configuration == null)
-                throw new ConfigurationErrorsException("Configuration file is missing or cannot be read.");
-
-            return _configuration;
         }
 
         public event Action<string> OnLog
@@ -67,18 +65,40 @@ namespace Jobs.Runner
             }
         }
 
-        void IJob.Run(bool forceRun) => Run(forceRun);
-        void IJob.Run() => Run(false);
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        event JobExceptionThrownEventHandler _exceptionThrown;
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
-        private event Action<string> _onLog;
+        event Action<string> _onLog;
 
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
-        private event JobExceptionThrownEventHandler _exceptionThrown;
+        #endregion
 
-        ~Job()
+        #region properties
+
+        protected virtual bool RunnerIgnoresExceptions => false;
+
+        #endregion
+
+        #region methods
+
+        public void Dispose()
         {
-            Dispose(false);
+            Dispose(true);
+            SuppressFinalize(this);
+        }
+
+        public virtual System.Configuration.Configuration GetConfiguration()
+        {
+            if (_configuration == null)
+            {
+                _configuration = OpenExeConfiguration(GetType()
+                                                          .Assembly.Location);
+            }
+
+            if (_configuration == null)
+                throw new ConfigurationErrorsException("Configuration file is missing or cannot be read.");
+
+            return _configuration;
         }
 
         public virtual void Run()
@@ -111,7 +131,7 @@ namespace Jobs.Runner
             if (type == null)
                 type = GetType();
 
-            var value = ConfigurationManager.AppSettings[$"{type.FullName}.{key}"];
+            var value = AppSettings[$"{type.FullName}.{key}"];
 
             if (value == null && type.BaseType != typeof(object))
                 value = GetConfigValue(key, type.BaseType);
@@ -125,5 +145,9 @@ namespace Jobs.Runner
         protected void HandleException(Exception exception) => _exceptionThrown?.Invoke(this, GetJobExceptionThrownEventArgument(exception));
         protected void Log(string message) => _onLog?.Invoke(message);
         protected void Log(Exception exception) => Log(exception.ToText());
+        void IJob.Run(bool forceRun) => Run(forceRun);
+        void IJob.Run() => Run(false);
+
+        #endregion
     }
 }

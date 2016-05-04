@@ -5,7 +5,13 @@ namespace Jobs.Runner.Configuration.Exceptions
 {
     public class ConfigurationSectionMissingException : Exception
     {
-        private const string DEFAULT_MESSAGE_FORMAT = "Configuration section \"{0}\" is either missing or corrupt";
+        #region fields
+
+        const string DEFAULT_MESSAGE_FORMAT = "Configuration section \"{0}\" is either missing or corrupt";
+
+        #endregion
+
+        #region constructors
 
         public ConfigurationSectionMissingException(string section)
             : base(string.Format(DEFAULT_MESSAGE_FORMAT, section))
@@ -37,6 +43,12 @@ namespace Jobs.Runner.Configuration.Exceptions
             Section = section;
         }
 
+        #endregion
+
+        #region properties
+
         public string Section { get; set; }
+
+        #endregion
     }
 }

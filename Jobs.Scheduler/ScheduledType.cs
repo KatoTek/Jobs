@@ -1,10 +1,11 @@
 ﻿namespace Jobs.Scheduler
 {
-    internal enum ScheduledType
+    enum ScheduledType
     {
-        Minutely,
-        Hourly,
-        Daily,
-        Monthly
+        Minutely = 1,
+        Hourly = 2,
+        Daily = 5,
+        Weekly = 3,
+        Monthly = 4
     }
 }

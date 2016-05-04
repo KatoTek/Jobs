@@ -6,6 +6,7 @@ using Jobs.Runner;
 using Jobs.Scheduler.Exceptions;
 using Jobs.Scheduler.Extensions;
 using static System.Configuration.ConfigurationManager;
+using static System.DateTime;
 using static System.DayOfWeek;
 using static System.Enum;
 using static Jobs.Scheduler.ScheduledType;
@@ -14,18 +15,28 @@ namespace Jobs.Scheduler
 {
     public abstract class ScheduledJob : Runner.Job
     {
-        private static readonly object JobSchedulerModelLocker = new object();
-        private bool _disposed;
-        private Job _job;
-        private JobInstance _jobInstance;
-        private EntitiesModel _model;
-        private bool _runnerIgnoresExceptions;
-        private DateTime? _time;
+        #region fields
+
+        static readonly object JobSchedulerModelLocker = new object();
+        bool _disposed;
+        Job _job;
+        JobInstance _jobInstance;
+        EntitiesModel _model;
+        bool _runnerIgnoresExceptions;
+        DateTime? _time;
+
+        #endregion
+
+        #region constructors
 
         protected ScheduledJob()
         {
             ExceptionThrown += RecordException;
         }
+
+        #endregion
+
+        #region properties
 
         public long JobInstanceId
         {
@@ -39,10 +50,13 @@ namespace Jobs.Scheduler
         }
 
         protected abstract string JobSchedulerAppId { get; }
-        protected virtual string JobSchedulerJobName => GetType().FullName;
+
+        protected virtual string JobSchedulerJobName => GetType()
+            .FullName;
+
         protected override bool RunnerIgnoresExceptions => _runnerIgnoresExceptions;
 
-        private Job Job
+        Job Job
         {
             get
             {
@@ -65,7 +79,7 @@ namespace Jobs.Scheduler
             }
         }
 
-        private EntitiesModel Model
+        EntitiesModel Model
         {
             get
             {
@@ -87,7 +101,7 @@ namespace Jobs.Scheduler
             }
         }
 
-        private DateTime Time
+        DateTime Time
         {
             get
             {
@@ -102,6 +116,10 @@ namespace Jobs.Scheduler
                 return _time.Value;
             }
         }
+
+        #endregion
+
+        #region methods
 
         public override void Run(bool forceRun)
         {
@@ -126,7 +144,9 @@ namespace Jobs.Scheduler
                 lock (JobSchedulerModelLocker)
                 {
                     Model.FlushChanges();
-                    _runnerIgnoresExceptions = (from jobInstance in Model.JobInstances where jobInstance.JobId == Job.JobId && jobInstance.Start > Job.LastRun select jobInstance).Count() < Job.AlertAfterTries;
+                    _runnerIgnoresExceptions = (from jobInstance in Model.JobInstances
+                                                where jobInstance.JobId == Job.JobId && jobInstance.Start > Job.LastRun
+                                                select jobInstance).Count() < Job.AlertAfterTries;
                 }
 
                 HandleException(exception);
@@ -163,26 +183,7 @@ namespace Jobs.Scheduler
 
         protected abstract void ScheduledWork();
 
-        private void CloseJobInstance()
-        {
-            lock (JobSchedulerModelLocker)
-            {
-                _jobInstance.End = Model.GetDateTime();
-                Model.SaveChanges();
-            }
-        }
-
-        private void CreateJobInstance()
-        {
-            _jobInstance = new JobInstance { JobId = Job.JobId, Start = Time };
-            lock (JobSchedulerModelLocker)
-            {
-                Model.Add(_jobInstance);
-                Model.SaveChanges();
-            }
-        }
-
-        private static bool DayOfWeekQualifies(JobSchedule schedule, DateTime datetime)
+        static bool DayOfWeekQualifies(JobSchedule schedule, DateTime datetime)
         {
             switch (datetime.DayOfWeek)
             {
@@ -212,11 +213,11 @@ namespace Jobs.Scheduler
             }
         }
 
-        private static bool DayQualifies(JobSchedule schedule, DateTime datetime)
+        static bool DayQualifies(JobSchedule schedule, DateTime datetime)
         {
             if (schedule.LastDayOfMonth)
             {
-                var endOfMonth = new DateTime(datetime.Year, datetime.Month, DateTime.DaysInMonth(datetime.Year, datetime.Month));
+                var endOfMonth = new DateTime(datetime.Year, datetime.Month, DaysInMonth(datetime.Year, datetime.Month));
                 if (datetime.Day == endOfMonth.Day)
                     return true;
             }
@@ -290,64 +291,7 @@ namespace Jobs.Scheduler
             }
         }
 
-        private IEnumerable<DateTime> GetScheduledDateTimes(JobSchedule schedule)
-        {
-            var scheduledDateTimes = new List<DateTime>();
-            for (var counter = 0; counter > (0 - schedule.AllowedDelayDays); counter--)
-            {
-                ScheduledType type;
-                if (!TryParse(schedule.JobScheduleType.Type, out type))
-                    continue;
-
-                var date = Time.AddDays(counter);
-                switch (type)
-                {
-                    case Daily:
-                        if (DayOfWeekQualifies(schedule, date))
-                            scheduledDateTimes.Add(new DateTime(date.Year, date.Month, date.Day, schedule.Hour, schedule.Minute, 0));
-                        break;
-                    case Monthly:
-                        if (MonthQualifiers(schedule, date) && DayQualifies(schedule, date))
-                            scheduledDateTimes.Add(new DateTime(date.Year, date.Month, date.Day, schedule.Hour, schedule.Minute, 0));
-                        break;
-                    case Minutely:
-                        break;
-                    case Hourly:
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-            }
-            return scheduledDateTimes.Where(dateTime => dateTime <= Time).ToList();
-        }
-
-        private int LogException(Exception exception)
-        {
-            int? childId = null;
-            if (exception.InnerException != null)
-                childId = LogException(exception.InnerException);
-
-            var jobException = new JobException
-                               {
-                                   JobInstanceId = JobInstanceId,
-                                   ChildId = childId,
-                                   Date = DateTime.Now,
-                                   Type = exception.GetType().Name,
-                                   Message = exception.Message,
-                                   Source = exception.Source,
-                                   StackTrace = exception.StackTrace,
-                                   HelpLink = exception.HelpLink
-                               };
-            lock (JobSchedulerModelLocker)
-            {
-                Model.Add(jobException);
-                Model.SaveChanges();
-            }
-
-            return jobException.JobExceptionId;
-        }
-
-        private static bool MonthQualifiers(JobSchedule schedule, DateTime datetime)
+        static bool MonthQualifies(JobSchedule schedule, DateTime datetime)
         {
             switch (datetime.Month)
             {
@@ -380,19 +324,100 @@ namespace Jobs.Scheduler
             }
         }
 
-        private void RecordException(object sender, JobExceptionThrownEventArguments args)
+        void CloseJobInstance()
+        {
+            lock (JobSchedulerModelLocker)
+            {
+                _jobInstance.End = Model.GetDateTime();
+                Model.SaveChanges();
+            }
+        }
+
+        void CreateJobInstance()
+        {
+            _jobInstance = new JobInstance { JobId = Job.JobId, Start = Time };
+            lock (JobSchedulerModelLocker)
+            {
+                Model.Add(_jobInstance);
+                Model.SaveChanges();
+            }
+        }
+
+        IEnumerable<DateTime> GetScheduledDateTimes(JobSchedule schedule)
+        {
+            var scheduledDateTimes = new List<DateTime>();
+            for (var counter = 0; counter > 0 - schedule.AllowedDelayDays; counter--)
+            {
+                ScheduledType type;
+                if (!TryParse(schedule.JobScheduleType.Type, out type))
+                    continue;
+
+                var date = Time.AddDays(counter);
+                switch (type)
+                {
+                    case Weekly:
+                        if (DayOfWeekQualifies(schedule, date))
+                            scheduledDateTimes.Add(new DateTime(date.Year, date.Month, date.Day, schedule.Hour, schedule.Minute, 0));
+                        break;
+                    case Monthly:
+                        if (MonthQualifies(schedule, date) && DayQualifies(schedule, date))
+                            scheduledDateTimes.Add(new DateTime(date.Year, date.Month, date.Day, schedule.Hour, schedule.Minute, 0));
+                        break;
+                    case Minutely:
+                    case Hourly:
+                    case Daily:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            return scheduledDateTimes.Where(dateTime => dateTime <= Time)
+                                     .ToList();
+        }
+
+        int LogException(Exception exception)
+        {
+            int? childId = null;
+            if (exception.InnerException != null)
+                childId = LogException(exception.InnerException);
+
+            var jobException = new JobException
+                               {
+                                   JobInstanceId = JobInstanceId,
+                                   ChildId = childId,
+                                   Date = Now,
+                                   Type = exception.GetType()
+                                                   .Name,
+                                   Message = exception.Message,
+                                   Source = exception.Source,
+                                   StackTrace = exception.StackTrace,
+                                   HelpLink = exception.HelpLink
+                               };
+
+            lock (JobSchedulerModelLocker)
+            {
+                Model.Add(jobException);
+                Model.SaveChanges();
+            }
+
+            return jobException.JobExceptionId;
+        }
+
+        void RecordException(object sender, JobExceptionThrownEventArguments args)
         {
             var scheduledJobExceptionThrownEventArguments = args as ScheduledJobExceptionThrownEventArguments;
             if (scheduledJobExceptionThrownEventArguments != null)
                 scheduledJobExceptionThrownEventArguments.JobExceptionId = LogException(args.Exception);
         }
 
-        private bool ValidateSchedule()
+        bool ValidateSchedule()
         {
             if (!Job.Enabled)
                 return false;
 
-            foreach (var jobSchedule in Job.JobSchedules.Where(jobSchedule => (jobSchedule.ScheduleStart <= Time) && ((!jobSchedule.ScheduleEnd.HasValue) || (jobSchedule.ScheduleEnd.Value >= Time))))
+            foreach (var jobSchedule in
+                Job.JobSchedules.Where(jobSchedule => (jobSchedule.ScheduleStart <= Time) && (!jobSchedule.ScheduleEnd.HasValue || (jobSchedule.ScheduleEnd.Value >= Time))))
             {
                 ScheduledType type;
 
@@ -410,8 +435,13 @@ namespace Jobs.Scheduler
                             return true;
                         break;
                     case Daily:
+                        if ((Time - Job.LastRun).Days >= jobSchedule.RepeatInterval)
+                            return true;
+                        break;
+                    case Weekly:
                     case Monthly:
-                        if (GetScheduledDateTimes(jobSchedule).Any(dateTime => dateTime > Job.LastRun))
+                        if (GetScheduledDateTimes(jobSchedule)
+                            .Any(dateTime => dateTime > Job.LastRun))
                             return true;
                         break;
                     default:
@@ -421,5 +451,7 @@ namespace Jobs.Scheduler
 
             return false;
         }
+
+        #endregion
     }
 }

@@ -1,27 +1,30 @@
-﻿using System;
-using System.Diagnostics;
-using System.Linq;
-using Jobs.Service.Configuration;
+﻿using System.Diagnostics;
+using static System.Diagnostics.EventLog;
+using static Jobs.Service.Configuration.JobsServiceConfigurationSection;
 
-namespace JobServiceEventLogCreator
+namespace Jobs.EventLogCreator
 {
-    internal class Program
+    class Program
     {
+        #region fields
+
         internal static string ServiceSection = "jobsservice";
 
-        private static void Main(string[] args)
-        { 
-            var jobsServiceConfig = JobsServiceConfigurationSection.GetSection(ServiceSection);
-            var eventLog = new EventLog()
-                           {
-                               Source = jobsServiceConfig.Log.Source,
-                               Log = jobsServiceConfig.Log.Name
-                           };
+        #endregion
 
-            if (!EventLog.SourceExists(eventLog.Source)) 
-                EventLog.CreateEventSource(eventLog.Source, eventLog.Log);
+        #region methods
+
+        static void Main()
+        {
+            var jobsServiceConfig = GetSection(ServiceSection);
+            var eventLog = new EventLog { Source = jobsServiceConfig.Log.Source, Log = jobsServiceConfig.Log.Name };
+
+            if (!SourceExists(eventLog.Source))
+                CreateEventSource(eventLog.Source, eventLog.Log);
 
             eventLog.WriteEntry("JobServiceLog Created");
         }
+
+        #endregion
     }
 }
