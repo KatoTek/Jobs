@@ -19,16 +19,22 @@ namespace Jobs.Runner
 {
     public sealed class Runner : IDisposable
     {
-        private const string BATCH_FORMAT = "==== BATCH {1} {0} ====";
-        private const string FINISHED = "JOBS.RUNNER FINISHED";
-        private const string MAIL_SECTION = "jobs.runner.mail";
-        private const string RUNNER_SECTION = "jobs.runner";
-        private const string STARTED = "JOBS.RUNNER STARTED";
-        private readonly CompositionContainer _compositionContainer;
-        private readonly List<DirectoryCatalog> _directoryCatalogs = new List<DirectoryCatalog>();
-        private readonly List<Action<string>> _onLogSubscribers = new List<Action<string>>();
-        private bool _disposed;
-        [ImportMany(typeof(IJob))] private IEnumerable<Lazy<IJob>> _lazyJobs;
+        #region fields
+
+        const string BATCH_FORMAT = "==== BATCH {1} {0} ====";
+        const string FINISHED = "JOBS.RUNNER FINISHED";
+        const string MAIL_SECTION = "jobs.runner.mail";
+        const string RUNNER_SECTION = "jobs.runner";
+        const string STARTED = "JOBS.RUNNER STARTED";
+        readonly CompositionContainer _compositionContainer;
+        readonly List<DirectoryCatalog> _directoryCatalogs = new List<DirectoryCatalog>();
+        readonly List<Action<string>> _onLogSubscribers = new List<Action<string>>();
+        bool _disposed;
+        [ImportMany(typeof(IJob))] IEnumerable<Lazy<IJob>> _lazyJobs;
+
+        #endregion
+
+        #region constructors
 
         public Runner()
         {
@@ -39,7 +45,8 @@ namespace Jobs.Runner
             {
                 foreach (var directoryCatalog in
                     from PluginPath pluginpath in jobrunnerConfig.PluginPaths
-                    where Exists($@"{GetDirectoryName(GetExecutingAssembly().Location)}\{pluginpath.FolderPath}")
+                    where Exists($@"{GetDirectoryName(GetExecutingAssembly()
+                                                          .Location)}\{pluginpath.FolderPath}")
                     select new DirectoryCatalog(pluginpath.FolderPath, pluginpath.SearchPattern))
                 {
                     _directoryCatalogs.Add(directoryCatalog);
@@ -62,22 +69,14 @@ namespace Jobs.Runner
             }
         }
 
-        public static string MailSection => MAIL_SECTION;
-        internal static string RunnerSection => RUNNER_SECTION;
-
-        public void Dispose()
-        {
-            Dispose(true);
-            SuppressFinalize(this);
-        }
-
         ~Runner()
         {
             Dispose(false);
         }
 
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
-        private event Action<string> _onLog;
+        #endregion
+
+        #region events
 
         public event Action<string> OnLog
         {
@@ -94,6 +93,26 @@ namespace Jobs.Runner
                 _onLog -= value;
                 _onLogSubscribers.Remove(value);
             }
+        }
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        event Action<string> _onLog;
+
+        #endregion
+
+        #region properties
+
+        public static string MailSection => MAIL_SECTION;
+        internal static string RunnerSection => RUNNER_SECTION;
+
+        #endregion
+
+        #region methods
+
+        public void Dispose()
+        {
+            Dispose(true);
+            SuppressFinalize(this);
         }
 
         public void Run()
@@ -126,7 +145,7 @@ namespace Jobs.Runner
             Log(FINISHED);
         }
 
-        private IEnumerable<Batch> BatchJobs()
+        IEnumerable<Batch> BatchJobs()
         {
             var batches = new List<Batch> { NewBatch() };
 
@@ -149,7 +168,7 @@ namespace Jobs.Runner
             return batches;
         }
 
-        private void Dispose(bool disposing)
+        void Dispose(bool disposing)
         {
             if (_disposed)
                 return;
@@ -170,16 +189,16 @@ namespace Jobs.Runner
             _disposed = true;
         }
 
-        private void HandleException(Exception exception)
+        void HandleException(Exception exception)
         {
             Log(exception);
             Send(exception, MailSection);
         }
 
-        private void Log(string message) => _onLog?.Invoke(message);
-        private void Log(Exception exception) => Log(exception.ToText());
+        void Log(string message) => _onLog?.Invoke(message);
+        void Log(Exception exception) => Log(exception.ToText());
 
-        private Batch NewBatch(IJob job = null)
+        Batch NewBatch(IJob job = null)
         {
             var batch = new Batch();
             batch.OnLog += _onLog;
@@ -188,5 +207,7 @@ namespace Jobs.Runner
 
             return batch;
         }
+
+        #endregion
     }
 }

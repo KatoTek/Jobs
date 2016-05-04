@@ -48,6 +48,18 @@
     <SlowCheetahTargets Condition=" '$(SlowCheetah_EnableImportFromNuGet)'=='true' and Exists('$(SlowCheetah_NuGetImportPath)') ">$(SlowCheetah_NuGetImportPath)</SlowCheetahTargets>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Encompass.Concepts, Version=3.12.16.319, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\KatoTek.Encompass.Concepts.3.12.16.319\lib\net40\Encompass.Concepts.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Encompass.Simple, Version=8.1.16.421, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\KatoTek.Encompass.Simple.8.1.16.421\lib\net40\Encompass.Simple.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Jobs.Runner, Version=6.5.16.504, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\KatoTek.Jobs.Runner.6.5.16.504\lib\net40\Jobs.Runner.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.ServiceProcess" />
@@ -78,8 +90,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Jobs.Service\Jobs.Service.csproj">
-      <Project>{E495CC87-2BF8-407B-9D2B-400B764633D4}</Project>
-      <Name>JobsService</Name>
+      <Project>{e495cc87-2bf8-407b-9d2b-400b764633d4}</Project>
+      <Name>Jobs.Service</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

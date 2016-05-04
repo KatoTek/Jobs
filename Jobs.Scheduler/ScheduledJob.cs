@@ -355,6 +355,9 @@ namespace Jobs.Scheduler
                 var date = Time.AddDays(counter);
                 switch (type)
                 {
+                    case Daily:
+                        scheduledDateTimes.Add(new DateTime(date.Year, date.Month, date.Day, schedule.Hour, schedule.Minute, 0));
+                        break;
                     case Weekly:
                         if (DayOfWeekQualifies(schedule, date))
                             scheduledDateTimes.Add(new DateTime(date.Year, date.Month, date.Day, schedule.Hour, schedule.Minute, 0));
@@ -365,7 +368,6 @@ namespace Jobs.Scheduler
                         break;
                     case Minutely:
                     case Hourly:
-                    case Daily:
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -435,9 +437,6 @@ namespace Jobs.Scheduler
                             return true;
                         break;
                     case Daily:
-                        if ((Time - Job.LastRun).Days >= jobSchedule.RepeatInterval)
-                            return true;
-                        break;
                     case Weekly:
                     case Monthly:
                         if (GetScheduledDateTimes(jobSchedule)

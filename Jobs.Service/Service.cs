@@ -13,15 +13,21 @@ namespace Jobs.Service
 {
     public partial class Service : ServiceBase
     {
+        #region fields
+
+        const string DEBUG = "debug";
+        const string WAIT = "wait";
         internal static string ServiceSection = "jobs.service";
-        private const string DEBUG = "debug";
-        private const string WAIT = "wait";
-        private readonly JobsServiceConfigurationSection _jobsServiceConfig;
-        private readonly ManualResetEvent _shutdownEvent = new ManualResetEvent(false);
-        private bool _disposed;
-        private EventLog _eventLog;
-        private Task _task;
-        private bool _wait;
+        readonly JobsServiceConfigurationSection _jobsServiceConfig;
+        readonly ManualResetEvent _shutdownEvent = new ManualResetEvent(false);
+        bool _disposed;
+        EventLog _eventLog;
+        Task _task;
+        bool _wait;
+
+        #endregion
+
+        #region constructors
 
         public Service()
         {
@@ -30,7 +36,15 @@ namespace Jobs.Service
             _jobsServiceConfig = JobsServiceConfigurationSection.GetSection(ServiceSection);
         }
 
+        #endregion
+
+        #region events
+
         protected event Action<string> OnLog;
+
+        #endregion
+
+        #region methods
 
         protected override void Dispose(bool disposing)
         {
@@ -83,7 +97,7 @@ namespace Jobs.Service
             Log("Service Stopped");
         }
 
-        private void DoWork()
+        void DoWork()
         {
             while (!_shutdownEvent.WaitOne(0))
             {
@@ -98,6 +112,8 @@ namespace Jobs.Service
             }
         }
 
-        private void Log(string message) => OnLog?.Invoke(message);
+        void Log(string message) => OnLog?.Invoke(message);
+
+        #endregion
     }
 }

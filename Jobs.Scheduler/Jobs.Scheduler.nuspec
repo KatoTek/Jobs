@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>KatoTek.$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <licenseUrl>https://github.com/KatoTek/Jobs/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/KatoTek/Jobs/tree/master/Jobs.Scheduler</projectUrl>
+    <!--<iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>-->
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright KatoTek 2016</copyright>
+    <tags>Custom</tags>
+  </metadata>
+</package>

@@ -61,6 +61,18 @@
     <SlowCheetahTargets Condition=" '$(SlowCheetah_EnableImportFromNuGet)'=='true' and Exists('$(SlowCheetah_NuGetImportPath)') ">$(SlowCheetah_NuGetImportPath)</SlowCheetahTargets>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Encompass.Concepts, Version=3.12.16.319, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\KatoTek.Encompass.Concepts.3.12.16.319\lib\net40\Encompass.Concepts.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Encompass.Simple, Version=8.1.16.421, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\KatoTek.Encompass.Simple.8.1.16.421\lib\net40\Encompass.Simple.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Jobs.Runner, Version=6.5.16.504, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\KatoTek.Jobs.Runner.6.5.16.504\lib\net40\Jobs.Runner.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Configuration.Install" />
@@ -102,12 +114,6 @@
     </None>
     <None Include="packages.config" />
     <None Include="Properties\SlowCheetah\SlowCheetah.Transforms.targets" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Jobs.Runner\Jobs.Runner.csproj">
-      <Project>{52DB6213-B82B-448D-9630-CC707CFE5F3A}</Project>
-      <Name>JobRunner</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Service.resx">

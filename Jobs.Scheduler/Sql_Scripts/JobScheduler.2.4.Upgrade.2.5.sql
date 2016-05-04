@@ -10,6 +10,11 @@ if not exists (select *
 set identity_insert [dbo].[js_JobScheduleTypes] on
 go
 
+update [dbo].[js_JobScheduleTypes]
+set [Type] = 'Weekly'
+where [JobScheduleTypeId] = 3
+go
+
 insert [dbo].[js_JobScheduleTypes] (
 	   [JobScheduleTypeId]
 	  , [Type])

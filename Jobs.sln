@@ -7,14 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Runner", "Jobs.Runner\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Scheduler", "Jobs.Scheduler\Jobs.Scheduler.csproj", "{2E497386-9BBD-4B02-8F78-F5B7D8F2C00D}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{98233CA7-290D-45B6-ACEE-9549BCAD641F}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-		.nuget\packages.config = .nuget\packages.config
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Service", "Jobs.Service\Jobs.Service.csproj", "{E495CC87-2BF8-407B-9D2B-400B764633D4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Debugger", "Jobs.Debugger\Jobs.Debugger.csproj", "{7756F7B7-5116-4DF0-97D5-1512FB83695B}"
