@@ -11,8 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Service", "Jobs.Servic
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Debugger", "Jobs.Debugger\Jobs.Debugger.csproj", "{7756F7B7-5116-4DF0-97D5-1512FB83695B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.EventLogCreator", "Jobs.EventLogCreator\Jobs.EventLogCreator.csproj", "{052C345B-BBF8-41A6-8C42-6EA1A42B2070}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,10 +33,6 @@ Global
 		{7756F7B7-5116-4DF0-97D5-1512FB83695B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7756F7B7-5116-4DF0-97D5-1512FB83695B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7756F7B7-5116-4DF0-97D5-1512FB83695B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{052C345B-BBF8-41A6-8C42-6EA1A42B2070}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{052C345B-BBF8-41A6-8C42-6EA1A42B2070}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{052C345B-BBF8-41A6-8C42-6EA1A42B2070}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{052C345B-BBF8-41A6-8C42-6EA1A42B2070}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
