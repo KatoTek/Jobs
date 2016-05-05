@@ -6,7 +6,7 @@ namespace Jobs.Debugger
     {
         #region methods
 
-        static void Main() => new JobsService().Start();
+        static void Main() => new JobsService().SimulateStart();
 
         #endregion
 
@@ -14,18 +14,21 @@ namespace Jobs.Debugger
 
         public class JobsService : Service.Service
         {
-            #region constructors
-
-            public JobsService()
-            {
-                OnLog += WriteLine;
-            }
-
-            #endregion
-
             #region methods
 
-            public void Start() => OnStart(new[] { "wait", "debug" });
+            public void SimulateStart() => OnStart(new[] { "wait", "debug" });
+
+            protected override void OnStart(string[] args)
+            {
+                Log += WriteLine;
+                base.OnStart(args);
+            }
+
+            protected override void OnStop()
+            {
+                base.OnStop();
+                Log += WriteLine;
+            }
 
             #endregion
         }

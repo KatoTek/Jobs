@@ -7,7 +7,7 @@ namespace Jobs.Runner
         #region events
 
         event JobExceptionThrownEventHandler ExceptionThrown;
-        event Action<string> OnLog;
+        event Action<string> Log;
 
         #endregion
 

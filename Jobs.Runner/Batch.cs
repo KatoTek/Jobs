@@ -7,13 +7,11 @@ using Encompass.Simple.Extensions;
 using static System.Configuration.ConfigurationManager;
 using static System.Configuration.ConfigurationSaveMode;
 using static System.Configuration.ConfigurationUserLevel;
+using static System.Environment;
 using static System.GC;
 using static System.String;
-using static Encompass.Concepts.Mail.Mailer;
-using static Jobs.Runner.Runner;
-
 #if !DEBUG
-using System.Threading.Tasks;
+using static System.Threading.Tasks.Parallel;
 
 #endif
 
@@ -24,11 +22,11 @@ namespace Jobs.Runner
         #region fields
 
         const string ERRORED = "ERRORED";
-        const string EXCEPTION_EMAIL_CONTENT_FORMAT = "<h1>{0}</h1>";
         const string FINISHED = "FINISHED";
         const string JOB_FORMAT = "---- JOB {1} {0} ----";
         const string STARTED = "STARTED";
-        readonly List<Action<string>> _onLogSubscribers = new List<Action<string>>();
+        readonly List<JobExceptionThrownEventHandler> _jobExceptionThrownEventHandlers = new List<JobExceptionThrownEventHandler>();
+        readonly List<Action<string>> _logHandlers = new List<Action<string>>();
         List<KeyValueConfigurationElement> _appSettings = new List<KeyValueConfigurationElement>();
         List<ConnectionStringSettings> _connectionStrings = new List<ConnectionStringSettings>();
         bool _disposed;
@@ -47,25 +45,45 @@ namespace Jobs.Runner
 
         #region events
 
-        public event Action<string> OnLog
+        public event JobExceptionThrownEventHandler ExceptionThrown
         {
             add
             {
-                if (_onLogSubscribers.Contains(value))
+                if (_jobExceptionThrownEventHandlers.Contains(value))
                     return;
 
-                _onLog += value;
-                _onLogSubscribers.Add(value);
+                _exceptionThrown += value;
+                _jobExceptionThrownEventHandlers.Add(value);
             }
             remove
             {
-                _onLog -= value;
-                _onLogSubscribers.Remove(value);
+                _exceptionThrown -= value;
+                _jobExceptionThrownEventHandlers.Remove(value);
+            }
+        }
+
+        public event Action<string> Log
+        {
+            add
+            {
+                if (_logHandlers.Contains(value))
+                    return;
+
+                _log += value;
+                _logHandlers.Add(value);
+            }
+            remove
+            {
+                _log -= value;
+                _logHandlers.Remove(value);
             }
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
-        event Action<string> _onLog;
+        event JobExceptionThrownEventHandler _exceptionThrown;
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        event Action<string> _log;
 
         #endregion
 
@@ -87,9 +105,16 @@ namespace Jobs.Runner
                 LoadConfiguration();
 
 #if DEBUG
-                _jobs.ForEach(RunJob);
+                try
+                {
+                    _jobs.ForEach(RunJob);
+                }
+                catch
+                {
+                    // ignored
+                }
 #else
-                Parallel.ForEach(_jobs, RunJob);
+                ForEach(_jobs, RunJob);
 #endif
             }
             finally
@@ -133,6 +158,9 @@ namespace Jobs.Runner
             _disposed = true;
         }
 
+        void InvokeExceptionThrown(object sender, JobExceptionThrownEventArguments args) => _exceptionThrown?.Invoke(sender, args);
+        void InvokeLog(string message) => _log?.Invoke(message);
+
         void LoadConfiguration()
         {
             var configuration = OpenExeConfiguration(None);
@@ -148,59 +176,35 @@ namespace Jobs.Runner
             RefreshSection("appSettings");
         }
 
-        void Log(string message) => _onLog?.Invoke(message);
-        void Log(Exception exception) => Log(exception.ToText());
-
-        void OnExceptionThrown(object sender, JobExceptionThrownEventArguments args)
-        {
-            if (!args.RunnerIgnoresExceptions)
-                SendException(args.Exception, args.Job);
-        }
-
         void RunJob(IJob job)
         {
-            job.ExceptionThrown += OnExceptionThrown;
-            job.OnLog += _onLog;
+            job.Log += InvokeLog;
+            job.ExceptionThrown += InvokeExceptionThrown;
+
+            var jobtype = job.GetType()
+                             .FullName;
 
             try
             {
-                Log(Format(JOB_FORMAT,
-                           STARTED,
-                           job.GetType()
-                              .FullName));
+                InvokeLog(Format(JOB_FORMAT, STARTED, jobtype));
 
                 job.Run();
             }
             catch (Exception exception)
             {
-                Log(Format(JOB_FORMAT,
-                           ERRORED,
-                           job.GetType()
-                              .FullName));
-
-                SendException(exception, job);
+                InvokeLog(Format(JOB_FORMAT, ERRORED, jobtype));
+                InvokeLog($"{jobtype} Exception{NewLine}{exception.ToText()}");
+                InvokeExceptionThrown(job, new JobExceptionThrownEventArguments {Exception = exception, Job = job});
             }
             finally
             {
-                job.ExceptionThrown -= OnExceptionThrown;
-                job.OnLog -= _onLog;
+                job.ExceptionThrown -= InvokeExceptionThrown;
+                job.Log -= InvokeLog;
 
-                Log(Format(JOB_FORMAT,
-                           FINISHED,
-                           job.GetType()
-                              .FullName));
+                InvokeLog(Format(JOB_FORMAT, FINISHED, jobtype));
 
                 job.Dispose();
             }
-        }
-
-        void SendException(Exception exception, IJob job)
-        {
-            Log(exception);
-            Send(EXCEPTION_EMAIL_CONTENT_FORMAT.FormatWith(job.GetType()
-                                                              .FullName),
-                 exception,
-                 MailSection);
         }
 
         bool TryAppSettings(System.Configuration.Configuration configuration, out List<KeyValueConfigurationElement> safeSettings)

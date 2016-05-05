@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.Diagnostics.CodeAnalysis;
-using Encompass.Simple.Extensions;
 using static System.Configuration.ConfigurationManager;
 using static System.GC;
 using static System.String;
@@ -13,8 +10,6 @@ namespace Jobs.Runner
     {
         #region fields
 
-        readonly List<JobExceptionThrownEventHandler> _exceptionThrownSubscribers = new List<JobExceptionThrownEventHandler>();
-        readonly List<Action<string>> _onLogSubscribers = new List<Action<string>>();
         System.Configuration.Configuration _configuration;
         bool _disposed;
 
@@ -31,51 +26,8 @@ namespace Jobs.Runner
 
         #region events
 
-        public event JobExceptionThrownEventHandler ExceptionThrown
-        {
-            add
-            {
-                if (_exceptionThrownSubscribers.Contains(value))
-                    return;
-
-                _exceptionThrown += value;
-                _exceptionThrownSubscribers.Add(value);
-            }
-            remove
-            {
-                _exceptionThrown -= value;
-                _exceptionThrownSubscribers.Remove(value);
-            }
-        }
-
-        public event Action<string> OnLog
-        {
-            add
-            {
-                if (_onLogSubscribers.Contains(value))
-                    return;
-
-                _onLog += value;
-                _onLogSubscribers.Add(value);
-            }
-            remove
-            {
-                _onLog -= value;
-                _onLogSubscribers.Remove(value);
-            }
-        }
-
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
-        event JobExceptionThrownEventHandler _exceptionThrown;
-
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
-        event Action<string> _onLog;
-
-        #endregion
-
-        #region properties
-
-        protected virtual bool RunnerIgnoresExceptions => false;
+        public event JobExceptionThrownEventHandler ExceptionThrown;
+        public event Action<string> Log;
 
         #endregion
 
@@ -109,7 +61,7 @@ namespace Jobs.Runner
             }
             catch (Exception exception)
             {
-                HandleException(exception);
+                OnExceptionThrown(new JobExceptionThrownEventArguments { Exception = exception, Job = this });
             }
         }
 
@@ -139,12 +91,8 @@ namespace Jobs.Runner
             return value;
         }
 
-        protected virtual JobExceptionThrownEventArguments GetJobExceptionThrownEventArgument(Exception exception)
-            => new JobExceptionThrownEventArguments { Exception = exception, RunnerIgnoresExceptions = RunnerIgnoresExceptions, Job = this };
-
-        protected void HandleException(Exception exception) => _exceptionThrown?.Invoke(this, GetJobExceptionThrownEventArgument(exception));
-        protected void Log(string message) => _onLog?.Invoke(message);
-        protected void Log(Exception exception) => Log(exception.ToText());
+        protected void OnExceptionThrown(JobExceptionThrownEventArguments args) => ExceptionThrown?.Invoke(this, args);
+        protected void OnLog(string message) => Log?.Invoke(message);
         void IJob.Run(bool forceRun) => Run(forceRun);
         void IJob.Run() => Run(false);
 

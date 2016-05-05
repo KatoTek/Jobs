@@ -4,15 +4,12 @@ using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Encompass.Simple.Extensions;
 using Jobs.Runner.Configuration;
 using Jobs.Runner.Configuration.Exceptions;
 using static System.GC;
 using static System.IO.Directory;
 using static System.IO.Path;
 using static System.Reflection.Assembly;
-using static System.String;
-using static Encompass.Concepts.Mail.Mailer;
 using static Jobs.Runner.Configuration.JobRunnerConfigurationSection;
 
 namespace Jobs.Runner
@@ -21,14 +18,11 @@ namespace Jobs.Runner
     {
         #region fields
 
-        const string BATCH_FORMAT = "==== BATCH {1} {0} ====";
-        const string FINISHED = "JOBS.RUNNER FINISHED";
-        const string MAIL_SECTION = "jobs.runner.mail";
         const string RUNNER_SECTION = "jobs.runner";
-        const string STARTED = "JOBS.RUNNER STARTED";
         readonly CompositionContainer _compositionContainer;
         readonly List<DirectoryCatalog> _directoryCatalogs = new List<DirectoryCatalog>();
-        readonly List<Action<string>> _onLogSubscribers = new List<Action<string>>();
+        readonly List<JobExceptionThrownEventHandler> _jobExceptionThrownEventHandlers = new List<JobExceptionThrownEventHandler>();
+        readonly List<Action<string>> _logHandlers = new List<Action<string>>();
         bool _disposed;
         [ImportMany(typeof(IJob))] IEnumerable<Lazy<IJob>> _lazyJobs;
 
@@ -57,16 +51,7 @@ namespace Jobs.Runner
                 throw new ConfigurationSectionMissingException(RunnerSection);
 
             _compositionContainer = new CompositionContainer(aggregateCatalog);
-
-            try
-            {
-                _compositionContainer.ComposeParts(this);
-            }
-            catch (Exception exception)
-            {
-                HandleException(exception);
-                throw;
-            }
+            _compositionContainer.ComposeParts(this);
         }
 
         ~Runner()
@@ -78,31 +63,50 @@ namespace Jobs.Runner
 
         #region events
 
-        public event Action<string> OnLog
+        public event JobExceptionThrownEventHandler ExceptionThrown
         {
             add
             {
-                if (_onLogSubscribers.Contains(value))
+                if (_jobExceptionThrownEventHandlers.Contains(value))
                     return;
 
-                _onLog += value;
-                _onLogSubscribers.Add(value);
+                _exceptionThrown += value;
+                _jobExceptionThrownEventHandlers.Add(value);
             }
             remove
             {
-                _onLog -= value;
-                _onLogSubscribers.Remove(value);
+                _exceptionThrown -= value;
+                _jobExceptionThrownEventHandlers.Remove(value);
+            }
+        }
+
+        public event Action<string> Log
+        {
+            add
+            {
+                if (_logHandlers.Contains(value))
+                    return;
+
+                _log += value;
+                _logHandlers.Add(value);
+            }
+            remove
+            {
+                _log -= value;
+                _logHandlers.Remove(value);
             }
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
-        event Action<string> _onLog;
+        event JobExceptionThrownEventHandler _exceptionThrown;
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        event Action<string> _log;
 
         #endregion
 
         #region properties
 
-        public static string MailSection => MAIL_SECTION;
         internal static string RunnerSection => RUNNER_SECTION;
 
         #endregion
@@ -124,25 +128,25 @@ namespace Jobs.Runner
 
             var batchNum = 0;
 
-            Log(STARTED);
+            InvokeLog("= JOBS.RUNNER STARTED =");
             foreach (var batch in BatchJobs())
             {
                 try
                 {
-                    batchNum++;
-                    Log(Format(BATCH_FORMAT, STARTED, batchNum));
+                    InvokeLog($"== JOBS.RUNNER BATCH {batchNum++} STARTED ==");
 
                     batch.Run();
                 }
                 finally
                 {
-                    batch.OnLog -= _onLog;
+                    batch.ExceptionThrown -= InvokeExceptionThrown;
+                    batch.Log -= InvokeLog;
                     batch.Dispose();
 
-                    Log(Format(BATCH_FORMAT, FINISHED, batchNum));
+                    InvokeLog($"== JOBS.RUNNER BATCH {batchNum} FINISHED ==");
                 }
             }
-            Log(FINISHED);
+            InvokeLog("= JOBS.RUNNER FINISHED =");
         }
 
         IEnumerable<Batch> BatchJobs()
@@ -189,19 +193,14 @@ namespace Jobs.Runner
             _disposed = true;
         }
 
-        void HandleException(Exception exception)
-        {
-            Log(exception);
-            Send(exception, MailSection);
-        }
-
-        void Log(string message) => _onLog?.Invoke(message);
-        void Log(Exception exception) => Log(exception.ToText());
+        void InvokeExceptionThrown(object sender, JobExceptionThrownEventArguments args) => _exceptionThrown?.Invoke(sender, args);
+        void InvokeLog(string message) => _log?.Invoke(message);
 
         Batch NewBatch(IJob job = null)
         {
             var batch = new Batch();
-            batch.OnLog += _onLog;
+            batch.Log += InvokeLog;
+            batch.ExceptionThrown += InvokeExceptionThrown;
             if (job != null)
                 batch.TryAdd(job);
 

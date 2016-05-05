@@ -1,13 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
+using Jobs.Runner;
 using Jobs.Service.Configuration;
 using static System.Diagnostics.EventLog;
 using static System.StringComparison;
 using static System.Threading.Tasks.Task;
 using static System.Threading.Thread;
+using static Encompass.Concepts.Mail.Mailer;
+using static Jobs.Service.Configuration.JobsServiceConfigurationSection;
 
 namespace Jobs.Service
 {
@@ -15,10 +21,12 @@ namespace Jobs.Service
     {
         #region fields
 
-        const string DEBUG = "debug";
         const string WAIT = "wait";
+        const string MAIL_SECTION = "jobs.service.mail";
         internal static string ServiceSection = "jobs.service";
+        readonly List<JobExceptionThrownEventHandler> _jobExceptionThrownEventHandlers = new List<JobExceptionThrownEventHandler>();
         readonly JobsServiceConfigurationSection _jobsServiceConfig;
+        readonly List<Action<string>> _logHandlers = new List<Action<string>>();
         readonly ManualResetEvent _shutdownEvent = new ManualResetEvent(false);
         bool _disposed;
         EventLog _eventLog;
@@ -33,14 +41,52 @@ namespace Jobs.Service
         {
             InitializeComponent();
 
-            _jobsServiceConfig = JobsServiceConfigurationSection.GetSection(ServiceSection);
+            _jobsServiceConfig = GetSection(ServiceSection);
         }
 
         #endregion
 
         #region events
 
-        protected event Action<string> OnLog;
+        public event JobExceptionThrownEventHandler ExceptionThrown
+        {
+            add
+            {
+                if (_jobExceptionThrownEventHandlers.Contains(value))
+                    return;
+
+                _exceptionThrown += value;
+                _jobExceptionThrownEventHandlers.Add(value);
+            }
+            remove
+            {
+                _exceptionThrown -= value;
+                _jobExceptionThrownEventHandlers.Remove(value);
+            }
+        }
+
+        public event Action<string> Log
+        {
+            add
+            {
+                if (_logHandlers.Contains(value))
+                    return;
+
+                _log += value;
+                _logHandlers.Add(value);
+            }
+            remove
+            {
+                _log -= value;
+                _logHandlers.Remove(value);
+            }
+        }
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        event JobExceptionThrownEventHandler _exceptionThrown;
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        event Action<string> _log;
 
         #endregion
 
@@ -63,27 +109,20 @@ namespace Jobs.Service
 
         protected override void OnStart(string[] args)
         {
-            var debug = false;
-            foreach (var arg in args)
-            {
-                if (!debug)
-                    debug = arg.Equals(DEBUG, CurrentCultureIgnoreCase);
+            foreach (var arg in args.TakeWhile(_ => !_wait))
+                _wait = arg.Equals(WAIT, CurrentCultureIgnoreCase);
 
-                if (!_wait)
-                    _wait = arg.Equals(WAIT, CurrentCultureIgnoreCase);
-            }
+            _eventLog = new EventLog { Source = _jobsServiceConfig.Log.Source, Log = _jobsServiceConfig.Log.Name };
 
-            if (debug)
-            {
-                _eventLog = new EventLog { Source = _jobsServiceConfig.Log.Source, Log = _jobsServiceConfig.Log.Name };
+            if (!SourceExists(_eventLog.Source))
+                CreateEventSource(_eventLog.Source, _eventLog.Log);
 
-                if (!SourceExists(_eventLog.Source))
-                    CreateEventSource(_eventLog.Source, _eventLog.Log);
+            ExceptionThrown += InvokeExceptionThrown;
+            ExceptionThrown += MailException;
+            Log += InvokeLog;
+            Log += _eventLog.WriteEntry;
 
-                OnLog += _eventLog.WriteEntry;
-            }
-
-            Log("Service Started");
+            InvokeLog("Service Started");
             _task = Factory.StartNew(DoWork);
 
             if (_wait)
@@ -94,8 +133,15 @@ namespace Jobs.Service
         {
             _shutdownEvent.Set();
             WaitAll(_task);
-            Log("Service Stopped");
+            InvokeLog("Service Stopped");
+
+            ExceptionThrown -= InvokeExceptionThrown;
+            ExceptionThrown -= MailException;
+            Log -= InvokeLog;
+            Log -= _eventLog.WriteEntry;
         }
+
+        static void MailException(object sender, JobExceptionThrownEventArguments args) => Send(args.Exception, MAIL_SECTION);
 
         void DoWork()
         {
@@ -105,14 +151,23 @@ namespace Jobs.Service
 
                 using (var runner = new Runner.Runner())
                 {
-                    runner.OnLog += OnLog;
-                    runner.Run();
-                    runner.OnLog -= OnLog;
+                    try
+                    {
+                        runner.Log += InvokeLog;
+                        runner.ExceptionThrown += InvokeExceptionThrown;
+                        runner.Run();
+                    }
+                    finally
+                    {
+                        runner.ExceptionThrown -= InvokeExceptionThrown;
+                        runner.Log -= InvokeLog;
+                    }
                 }
             }
         }
 
-        void Log(string message) => OnLog?.Invoke(message);
+        void InvokeExceptionThrown(object sender, JobExceptionThrownEventArguments args) => _exceptionThrown?.Invoke(sender, args);
+        void InvokeLog(string message) => _log?.Invoke(message);
 
         #endregion
     }

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
-using Jobs.Runner;
 using Jobs.Scheduler.Exceptions;
 using Jobs.Scheduler.Extensions;
 using static System.Configuration.ConfigurationManager;
@@ -22,17 +21,7 @@ namespace Jobs.Scheduler
         Job _job;
         JobInstance _jobInstance;
         EntitiesModel _model;
-        bool _runnerIgnoresExceptions;
         DateTime? _time;
-
-        #endregion
-
-        #region constructors
-
-        protected ScheduledJob()
-        {
-            ExceptionThrown += RecordException;
-        }
 
         #endregion
 
@@ -53,8 +42,6 @@ namespace Jobs.Scheduler
 
         protected virtual string JobSchedulerJobName => GetType()
             .FullName;
-
-        protected override bool RunnerIgnoresExceptions => _runnerIgnoresExceptions;
 
         Job Job
         {
@@ -144,12 +131,12 @@ namespace Jobs.Scheduler
                 lock (JobSchedulerModelLocker)
                 {
                     Model.FlushChanges();
-                    _runnerIgnoresExceptions = (from jobInstance in Model.JobInstances
-                                                where jobInstance.JobId == Job.JobId && jobInstance.Start > Job.LastRun
-                                                select jobInstance).Count() < Job.AlertAfterTries;
-                }
 
-                HandleException(exception);
+                    var jobExceptionId = LogException(exception);
+
+                    if (Model.JobInstances.Count(jobInstance => jobInstance.JobId == Job.JobId && jobInstance.Start > Job.LastRun) < Job.AlertAfterTries)
+                        OnExceptionThrown(new ScheduledJobExceptionThrownEventArguments { Exception = exception, Job = this, JobExceptionId = jobExceptionId });
+                }
             }
             finally
             {
@@ -171,15 +158,10 @@ namespace Jobs.Scheduler
 
                     _disposed = true;
                 }
-
-                ExceptionThrown -= RecordException;
             }
 
             base.Dispose(disposing);
         }
-
-        protected override JobExceptionThrownEventArguments GetJobExceptionThrownEventArgument(Exception exception)
-            => new ScheduledJobExceptionThrownEventArguments { Exception = exception, RunnerIgnoresExceptions = RunnerIgnoresExceptions };
 
         protected abstract void ScheduledWork();
 
@@ -404,13 +386,6 @@ namespace Jobs.Scheduler
             }
 
             return jobException.JobExceptionId;
-        }
-
-        void RecordException(object sender, JobExceptionThrownEventArguments args)
-        {
-            var scheduledJobExceptionThrownEventArguments = args as ScheduledJobExceptionThrownEventArguments;
-            if (scheduledJobExceptionThrownEventArguments != null)
-                scheduledJobExceptionThrownEventArguments.JobExceptionId = LogException(args.Exception);
         }
 
         bool ValidateSchedule()
