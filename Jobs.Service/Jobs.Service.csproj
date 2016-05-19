@@ -69,8 +69,8 @@
       <HintPath>..\packages\KatoTek.Encompass.Simple.8.1.16.421\lib\net40\Encompass.Simple.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Jobs.Runner, Version=7.2.16.505, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\KatoTek.Jobs.Runner.7.2.16.505\lib\net40\Jobs.Runner.dll</HintPath>
+    <Reference Include="Jobs.Runner, Version=7.3.16.519, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\KatoTek.Jobs.Runner.7.3.16.519\lib\net40\Jobs.Runner.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

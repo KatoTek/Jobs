@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using Jobs.Runner;
 using Jobs.Scheduler.Exceptions;
 using Jobs.Scheduler.Extensions;
 using static System.Configuration.ConfigurationManager;
@@ -116,6 +117,7 @@ namespace Jobs.Scheduler
             if (!forceRun && !ValidateSchedule())
                 return;
 
+            ExceptionThrown += LogException;
             CreateJobInstance();
             try
             {
@@ -135,12 +137,16 @@ namespace Jobs.Scheduler
                     var jobExceptionId = LogException(exception);
 
                     if (Model.JobInstances.Count(jobInstance => jobInstance.JobId == Job.JobId && jobInstance.Start > Job.LastRun) < Job.AlertAfterTries)
-                        OnExceptionThrown(new ScheduledJobExceptionThrownEventArguments { Exception = exception, Job = this, JobExceptionId = jobExceptionId });
+                    {
+                        ExceptionThrown -= LogException;
+                        InvokeExceptionThrown(new ScheduledJobExceptionThrownEventArguments { Exception = exception, Job = this, JobExceptionId = jobExceptionId });
+                    }
                 }
             }
             finally
             {
                 CloseJobInstance();
+                ExceptionThrown -= LogException;
             }
         }
 
@@ -387,6 +393,8 @@ namespace Jobs.Scheduler
 
             return jobException.JobExceptionId;
         }
+
+        void LogException(object sender, JobExceptionThrownEventArguments args) => LogException(args.Exception);
 
         bool ValidateSchedule()
         {

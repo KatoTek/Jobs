@@ -61,7 +61,7 @@ namespace Jobs.Runner
             }
             catch (Exception exception)
             {
-                OnExceptionThrown(new JobExceptionThrownEventArguments { Exception = exception, Job = this });
+                InvokeExceptionThrown(new JobExceptionThrownEventArguments { Exception = exception, Job = this });
             }
         }
 
@@ -91,8 +91,8 @@ namespace Jobs.Runner
             return value;
         }
 
-        protected void OnExceptionThrown(JobExceptionThrownEventArguments args) => ExceptionThrown?.Invoke(this, args);
-        protected void OnLog(string message) => Log?.Invoke(message);
+        protected void InvokeExceptionThrown(JobExceptionThrownEventArguments args) => ExceptionThrown?.Invoke(this, args);
+        protected void InvokeLog(string message) => Log?.Invoke(message);
         void IJob.Run(bool forceRun) => Run(forceRun);
         void IJob.Run() => Run(false);
 
