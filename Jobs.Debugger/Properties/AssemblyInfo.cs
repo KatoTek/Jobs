@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("Jobs.Debugger")]
-[assembly: AssemblyDescription("Console app that can be used to debug Jobs.Service")]
+[assembly: AssemblyTitle("Jobs.ConsoleApp")]
+[assembly: AssemblyDescription("Console app that can be used to debug Jobs.WindowsService")]
 #if DEBUG
 [assembly: AssemblyConfiguration("Debug")]
 #else
@@ -15,5 +15,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
 [assembly: Guid("d33b834b-1e1d-4058-8ad2-77dd3904cc07")]
-[assembly: AssemblyVersion("1.3.16.504")]
-[assembly: AssemblyFileVersion("1.3.16.504")]
+[assembly: AssemblyVersion("1.4.16.814")]
+[assembly: AssemblyFileVersion("1.4.16.814")]

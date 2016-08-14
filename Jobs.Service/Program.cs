@@ -1,13 +1,11 @@
-﻿using System.Diagnostics;
+﻿using System.Configuration.Install;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.ServiceProcess;
-using static System.Configuration.Install.ManagedInstallerClass;
-using static System.Reflection.Assembly;
-using static System.ServiceProcess.ServiceBase;
-using static System.Diagnostics.EventLog;
-using static Jobs.Service.Configuration.JobsServiceConfigurationSection;
+using Jobs.WindowsService.Configuration;
 
-namespace Jobs.Service
+namespace Jobs.WindowsService
 {
     static class Program
     {
@@ -27,24 +25,24 @@ namespace Jobs.Service
                 var argsArray = (from arg in args
                                  select arg.Trim()
                                            .ToLowerInvariant()).ToArray();
-                var location = GetExecutingAssembly()
+                var location = Assembly.GetExecutingAssembly()
                     .Location;
                 if (argsArray.Contains(INSTALL))
                 {
-                    var jobsServiceConfig = GetSection(Service.ServiceSection);
+                    var jobsServiceConfig = JobsServiceConfigurationSection.GetSection(Service.ServiceSection);
                     var eventLog = new EventLog { Source = jobsServiceConfig.Log.Source, Log = jobsServiceConfig.Log.Name };
-                    if (!SourceExists(eventLog.Source))
-                        CreateEventSource(eventLog.Source, eventLog.Log);
+                    if (!EventLog.SourceExists(eventLog.Source))
+                        EventLog.CreateEventSource(eventLog.Source, eventLog.Log);
 
                     eventLog.WriteEntry("Jobs.Service Log Created");
 
-                    InstallHelper(new[] { INSTALL, location });
+                    ManagedInstallerClass.InstallHelper(new[] { INSTALL, location });
                 }
                 else if (argsArray.Contains(UNINSTALL))
-                    InstallHelper(new[] { UNINSTALL, location });
+                    ManagedInstallerClass.InstallHelper(new[] { UNINSTALL, location });
             }
             else
-                Run(new ServiceBase[] { new Service() });
+                ServiceBase.Run(new ServiceBase[] { new Service() });
         }
 
         #endregion

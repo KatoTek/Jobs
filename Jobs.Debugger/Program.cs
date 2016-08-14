@@ -1,6 +1,7 @@
-﻿using static System.Console;
+﻿using System;
+using Jobs.WindowsService;
 
-namespace Jobs.Debugger
+namespace Jobs.ConsoleApp
 {
     class Program
     {
@@ -12,7 +13,7 @@ namespace Jobs.Debugger
 
         #region nested types
 
-        public class JobsService : Service.Service
+        public class JobsService : Service
         {
             #region methods
 
@@ -20,14 +21,14 @@ namespace Jobs.Debugger
 
             protected override void OnStart(string[] args)
             {
-                Log += WriteLine;
+                Log += Console.WriteLine;
                 base.OnStart(args);
             }
 
             protected override void OnStop()
             {
                 base.OnStop();
-                Log += WriteLine;
+                Log += Console.WriteLine;
             }
 
             #endregion

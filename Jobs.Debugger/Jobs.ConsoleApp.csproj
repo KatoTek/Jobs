@@ -7,8 +7,8 @@
     <ProjectGuid>{7756F7B7-5116-4DF0-97D5-1512FB83695B}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Jobs.Debugger</RootNamespace>
-    <AssemblyName>Jobs.Debugger</AssemblyName>
+    <RootNamespace>Jobs.ConsoleApp</RootNamespace>
+    <AssemblyName>Jobs.ConsoleApp</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SccProjectName>SAK</SccProjectName>
@@ -74,24 +74,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config">
-      <TransformOnBuild>true</TransformOnBuild>
-    </None>
-    <None Include="App.Debug.config">
-      <DependentUpon>App.config</DependentUpon>
-      <IsTransformFile>True</IsTransformFile>
-    </None>
-    <None Include="App.Release.config">
-      <DependentUpon>App.config</DependentUpon>
-      <IsTransformFile>True</IsTransformFile>
-    </None>
     <None Include="packages.config" />
     <None Include="Properties\SlowCheetah\SlowCheetah.Transforms.targets" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Jobs.Service\Jobs.Service.csproj">
+    <ProjectReference Include="..\Jobs.Service\Jobs.WindowsService.csproj">
       <Project>{e495cc87-2bf8-407b-9d2b-400b764633d4}</Project>
-      <Name>Jobs.Service</Name>
+      <Name>Jobs.WindowsService</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

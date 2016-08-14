@@ -7,8 +7,8 @@
     <ProjectGuid>{E495CC87-2BF8-407B-9D2B-400B764633D4}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Jobs.Service</RootNamespace>
-    <AssemblyName>Jobs.Service</AssemblyName>
+    <RootNamespace>Jobs.WindowsService</RootNamespace>
+    <AssemblyName>Jobs.WindowsService</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SccProjectName>SAK</SccProjectName>

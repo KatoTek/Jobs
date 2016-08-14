@@ -1,4 +1,4 @@
-﻿namespace Jobs.Service
+﻿namespace Jobs.WindowsService
 {
     partial class Service
     {

@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("Jobs.Service")]
-[assembly: AssemblyDescription("Service that continuously runs to execute JobRunner")]
+[assembly: AssemblyTitle("Jobs.WindowsService")]
+[assembly: AssemblyDescription("Service that continuously runs to execute Jobs.Runner")]
 #if DEBUG
 [assembly: AssemblyConfiguration("Debug")]
 #else
@@ -15,5 +15,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
 [assembly: Guid("ce58d549-616e-4b65-8f55-2d602547a8ab")]
-[assembly: AssemblyVersion("1.7.16.504")]
-[assembly: AssemblyFileVersion("1.7.16.504")]
+[assembly: AssemblyVersion("1.8.16.814")]
+[assembly: AssemblyFileVersion("1.8.16.814")]

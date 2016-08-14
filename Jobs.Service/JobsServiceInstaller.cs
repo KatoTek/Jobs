@@ -1,11 +1,13 @@
 ﻿using System.ComponentModel;
+using System.Configuration;
 using System.Configuration.Install;
 using System.ServiceProcess;
-using static System.Configuration.ConfigurationManager;
 using static System.Reflection.Assembly;
 using static System.ServiceProcess.ServiceStartMode;
+using static Jobs.WindowsService.Configuration.JobsServiceConfigurationSection;
+using static Jobs.WindowsService.Service;
 
-namespace Jobs.Service
+namespace Jobs.WindowsService
 {
     [RunInstaller(true)]
     public class JobsServiceInstaller : Installer
@@ -14,15 +16,17 @@ namespace Jobs.Service
 
         public JobsServiceInstaller()
         {
+            var section = GetSection(ServiceSection);
             Installers.AddRange(new Installer[]
                                 {
                                     new ServiceProcessInstaller { Password = null, Username = null },
                                     new ServiceInstaller
                                     {
-                                        Description = GetAppSetting("Description"),
-                                        DisplayName = GetAppSetting("DisplayName"),
-                                        ServiceName = GetAppSetting("ServiceName"),
-                                        StartType = Automatic
+                                        Description = section.Description,
+                                        DisplayName = section.DisplayName,
+                                        ServiceName = section.Name,
+                                        StartType = Automatic,
+                                        DelayedAutoStart = true
                                     }
                                 });
         }
@@ -31,9 +35,9 @@ namespace Jobs.Service
 
         #region methods
 
-        string GetAppSetting(string key) => OpenExeConfiguration(GetAssembly(GetType())
-                                                                     .Location)
-            .AppSettings.Settings[key].Value;
+        string GetAppSetting(string key) => ConfigurationManager.OpenExeConfiguration(GetAssembly(GetType())
+                                                                                          .Location)
+                                                                .AppSettings.Settings[key].Value;
 
         #endregion
     }

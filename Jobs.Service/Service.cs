@@ -6,16 +6,11 @@ using System.Linq;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
+using Encompass.Concepts.Mail;
 using Jobs.Runner;
-using Jobs.Service.Configuration;
-using static System.Diagnostics.EventLog;
-using static System.StringComparison;
-using static System.Threading.Tasks.Task;
-using static System.Threading.Thread;
-using static Encompass.Concepts.Mail.Mailer;
-using static Jobs.Service.Configuration.JobsServiceConfigurationSection;
+using Jobs.WindowsService.Configuration;
 
-namespace Jobs.Service
+namespace Jobs.WindowsService
 {
     public partial class Service : ServiceBase
     {
@@ -41,7 +36,7 @@ namespace Jobs.Service
         {
             InitializeComponent();
 
-            _jobsServiceConfig = GetSection(ServiceSection);
+            _jobsServiceConfig = JobsServiceConfigurationSection.GetSection(ServiceSection);
         }
 
         #endregion
@@ -110,12 +105,12 @@ namespace Jobs.Service
         protected override void OnStart(string[] args)
         {
             foreach (var arg in args.TakeWhile(_ => !_wait))
-                _wait = arg.Equals(WAIT, CurrentCultureIgnoreCase);
+                _wait = arg.Equals(WAIT, StringComparison.CurrentCultureIgnoreCase);
 
             _eventLog = new EventLog { Source = _jobsServiceConfig.Log.Source, Log = _jobsServiceConfig.Log.Name };
 
-            if (!SourceExists(_eventLog.Source))
-                CreateEventSource(_eventLog.Source, _eventLog.Log);
+            if (!EventLog.SourceExists(_eventLog.Source))
+                EventLog.CreateEventSource(_eventLog.Source, _eventLog.Log);
 
             ExceptionThrown += InvokeExceptionThrown;
             ExceptionThrown += MailException;
@@ -123,7 +118,7 @@ namespace Jobs.Service
             Log += _eventLog.WriteEntry;
 
             InvokeLog("Service Started");
-            _task = Factory.StartNew(DoWork);
+            _task = Task.Factory.StartNew(DoWork);
 
             if (_wait)
                 _task.Wait();
@@ -132,7 +127,7 @@ namespace Jobs.Service
         protected override void OnStop()
         {
             _shutdownEvent.Set();
-            WaitAll(_task);
+            Task.WaitAll(_task);
             InvokeLog("Service Stopped");
 
             ExceptionThrown -= InvokeExceptionThrown;
@@ -141,13 +136,13 @@ namespace Jobs.Service
             Log -= _eventLog.WriteEntry;
         }
 
-        static void MailException(object sender, JobExceptionThrownEventArguments args) => Send(args.Exception, MAIL_SECTION);
+        static void MailException(object sender, JobExceptionThrownEventArguments args) => Mailer.Send(args.Exception, MAIL_SECTION);
 
         void DoWork()
         {
             while (!_shutdownEvent.WaitOne(0))
             {
-                Sleep(1000);
+                Thread.Sleep(1000);
 
                 using (var runner = new Runner.Runner())
                 {

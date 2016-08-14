@@ -1,6 +1,6 @@
 using System.Configuration;
 
-namespace Jobs.Service.Configuration
+namespace Jobs.WindowsService.Configuration
 {
     public class Log : ConfigurationElement
     {
