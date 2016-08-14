@@ -74,11 +74,25 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\WindowsService\App.config">
+      <Link>App.config</Link>
+      <TransformOnBuild>true</TransformOnBuild>
+    </None>
+    <None Include="..\WindowsService\App.Debug.config">
+      <Link>App.Debug.config</Link>
+      <DependentUpon>App.config</DependentUpon>
+      <IsTransformFile>True</IsTransformFile>
+    </None>
+    <None Include="..\WindowsService\App.Release.config">
+      <Link>App.Release.config</Link>
+      <DependentUpon>App.config</DependentUpon>
+      <IsTransformFile>True</IsTransformFile>
+    </None>
     <None Include="packages.config" />
     <None Include="Properties\SlowCheetah\SlowCheetah.Transforms.targets" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Jobs.Service\Jobs.WindowsService.csproj">
+    <ProjectReference Include="..\WindowsService\Jobs.WindowsService.csproj">
       <Project>{e495cc87-2bf8-407b-9d2b-400b764633d4}</Project>
       <Name>Jobs.WindowsService</Name>
     </ProjectReference>
