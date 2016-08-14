@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Runner", "Jobs.Runner\Jobs.Runner.csproj", "{52DB6213-B82B-448D-9630-CC707CFE5F3A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Runner", "Runner\Jobs.Runner.csproj", "{52DB6213-B82B-448D-9630-CC707CFE5F3A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Scheduler", "Jobs.Scheduler\Jobs.Scheduler.csproj", "{2E497386-9BBD-4B02-8F78-F5B7D8F2C00D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Scheduler", "Scheduler\Jobs.Scheduler.csproj", "{2E497386-9BBD-4B02-8F78-F5B7D8F2C00D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.WindowsService", "Jobs.Service\Jobs.WindowsService.csproj", "{E495CC87-2BF8-407B-9D2B-400B764633D4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.WindowsService", "WindowsService\Jobs.WindowsService.csproj", "{E495CC87-2BF8-407B-9D2B-400B764633D4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.ConsoleApp", "Jobs.Debugger\Jobs.ConsoleApp.csproj", "{7756F7B7-5116-4DF0-97D5-1512FB83695B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.ConsoleApp", "ConsoleApp\Jobs.ConsoleApp.csproj", "{7756F7B7-5116-4DF0-97D5-1512FB83695B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Framework", "Framework", "{F38B33E1-A5A2-4475-AF96-2E35697F20BB}"
 EndProject
