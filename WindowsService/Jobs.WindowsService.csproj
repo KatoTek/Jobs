@@ -61,16 +61,8 @@
     <SlowCheetahTargets Condition=" '$(SlowCheetah_EnableImportFromNuGet)'=='true' and Exists('$(SlowCheetah_NuGetImportPath)') ">$(SlowCheetah_NuGetImportPath)</SlowCheetahTargets>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Encompass.Concepts, Version=3.12.16.319, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\KatoTek.Encompass.Concepts.3.12.16.319\lib\net40\Encompass.Concepts.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Encompass.Simple, Version=8.1.16.421, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\KatoTek.Encompass.Simple.8.1.16.421\lib\net40\Encompass.Simple.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Jobs.Runner, Version=7.3.16.519, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\KatoTek.Jobs.Runner.7.3.16.519\lib\net40\Jobs.Runner.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -136,6 +128,12 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Runner\Jobs.Runner.csproj">
+      <Project>{52db6213-b82b-448d-9630-cc707cfe5f3a}</Project>
+      <Name>Jobs.Runner</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SlowCheetahTargets)" Condition="Exists('$(SlowCheetahTargets)')" Label="SlowCheetah" />

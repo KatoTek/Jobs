@@ -1,9 +1,13 @@
-﻿using System.Configuration.Install;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
 using System.ServiceProcess;
-using Jobs.WindowsService.Configuration;
+using static System.Configuration.Install.ManagedInstallerClass;
+using static System.Diagnostics.EventLog;
+using static System.Reflection.Assembly;
+using static System.ServiceProcess.ServiceBase;
+using static System.StringComparer;
+using static Jobs.WindowsService.Configuration.JobsServiceConfigurationSection;
+using static Jobs.WindowsService.Service;
 
 namespace Jobs.WindowsService
 {
@@ -20,29 +24,24 @@ namespace Jobs.WindowsService
 
         static void Main(string[] args)
         {
-            if (args.Any())
+            var location = GetExecutingAssembly()
+                .Location;
+
+            if (args.Contains(INSTALL, InvariantCultureIgnoreCase))
             {
-                var argsArray = (from arg in args
-                                 select arg.Trim()
-                                           .ToLowerInvariant()).ToArray();
-                var location = Assembly.GetExecutingAssembly()
-                    .Location;
-                if (argsArray.Contains(INSTALL))
-                {
-                    var jobsServiceConfig = JobsServiceConfigurationSection.GetSection(Service.ServiceSection);
-                    var eventLog = new EventLog { Source = jobsServiceConfig.Log.Source, Log = jobsServiceConfig.Log.Name };
-                    if (!EventLog.SourceExists(eventLog.Source))
-                        EventLog.CreateEventSource(eventLog.Source, eventLog.Log);
+                var jobsServiceConfig = GetSection(ServiceSection);
+                var eventLog = new EventLog { Source = jobsServiceConfig.Log.Source, Log = jobsServiceConfig.Log.Name };
+                if (!SourceExists(eventLog.Source))
+                    CreateEventSource(eventLog.Source, eventLog.Log);
 
-                    eventLog.WriteEntry("Jobs.Service Log Created");
+                eventLog.WriteEntry("Jobs.Service Log Created");
 
-                    ManagedInstallerClass.InstallHelper(new[] { INSTALL, location });
-                }
-                else if (argsArray.Contains(UNINSTALL))
-                    ManagedInstallerClass.InstallHelper(new[] { UNINSTALL, location });
+                InstallHelper(new[] { INSTALL, location });
             }
+            else if (args.Contains(UNINSTALL, InvariantCultureIgnoreCase))
+                InstallHelper(new[] { UNINSTALL, location });
             else
-                ServiceBase.Run(new ServiceBase[] { new Service() });
+                Run(new ServiceBase[] { new Service() });
         }
 
         #endregion

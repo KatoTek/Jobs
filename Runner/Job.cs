@@ -1,8 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics.CodeAnalysis;
+using System.Threading;
+using System.Threading.Tasks;
 using static System.Configuration.ConfigurationManager;
 using static System.GC;
 using static System.String;
+using static System.Threading.Tasks.Task;
 
 namespace Jobs.Runner
 {
@@ -10,6 +15,8 @@ namespace Jobs.Runner
     {
         #region fields
 
+        readonly List<JobExceptionThrownEventHandler> _jobExceptionThrownEventHandlers = new List<JobExceptionThrownEventHandler>();
+        readonly List<Action<string>> _logHandlers = new List<Action<string>>();
         System.Configuration.Configuration _configuration;
         bool _disposed;
 
@@ -26,8 +33,45 @@ namespace Jobs.Runner
 
         #region events
 
-        public event JobExceptionThrownEventHandler ExceptionThrown;
-        public event Action<string> Log;
+        public event JobExceptionThrownEventHandler ExceptionThrown
+        {
+            add
+            {
+                if (_jobExceptionThrownEventHandlers.Contains(value))
+                    return;
+
+                _exceptionThrown += value;
+                _jobExceptionThrownEventHandlers.Add(value);
+            }
+            remove
+            {
+                _exceptionThrown -= value;
+                _jobExceptionThrownEventHandlers.Remove(value);
+            }
+        }
+
+        public event Action<string> Log
+        {
+            add
+            {
+                if (_logHandlers.Contains(value))
+                    return;
+
+                _log += value;
+                _logHandlers.Add(value);
+            }
+            remove
+            {
+                _log -= value;
+                _logHandlers.Remove(value);
+            }
+        }
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        event JobExceptionThrownEventHandler _exceptionThrown;
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        event Action<string> _log;
 
         #endregion
 
@@ -39,8 +83,11 @@ namespace Jobs.Runner
             SuppressFinalize(this);
         }
 
-        public virtual System.Configuration.Configuration GetConfiguration()
+        public System.Configuration.Configuration GetConfiguration()
         {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(Job));
+
             if (_configuration == null)
             {
                 _configuration = OpenExeConfiguration(GetType()
@@ -53,11 +100,18 @@ namespace Jobs.Runner
             return _configuration;
         }
 
-        public virtual void Run()
+        public async Task RunAsync(CancellationToken cancellationToken)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(Job));
+
             try
             {
-                Run(false);
+                await RunAsync(false, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception exception)
             {
@@ -65,7 +119,7 @@ namespace Jobs.Runner
             }
         }
 
-        public abstract void Run(bool forceRun);
+        public virtual async Task RunAsync(bool forceRun, CancellationToken cancellationToken) => await Delay(1000, cancellationToken);
 
         protected virtual void Dispose(bool disposing)
         {
@@ -77,6 +131,9 @@ namespace Jobs.Runner
 
         protected string GetConfigValue(string key, Type type = null)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(Job));
+
             if (IsNullOrWhiteSpace(key))
                 return null;
 
@@ -91,10 +148,10 @@ namespace Jobs.Runner
             return value;
         }
 
-        protected void InvokeExceptionThrown(JobExceptionThrownEventArguments args) => ExceptionThrown?.Invoke(this, args);
-        protected void InvokeLog(string message) => Log?.Invoke(message);
-        void IJob.Run(bool forceRun) => Run(forceRun);
-        void IJob.Run() => Run(false);
+        protected void InvokeExceptionThrown(JobExceptionThrownEventArguments args) => _exceptionThrown?.Invoke(this, args);
+        protected void InvokeLog(string message) => _log?.Invoke(message);
+        async Task IJob.RunAsync(bool forceRun, CancellationToken cancellationToken) => await RunAsync(forceRun, cancellationToken);
+        async Task IJob.RunAsync(CancellationToken cancellationToken) => await RunAsync(false, cancellationToken);
 
         #endregion
     }

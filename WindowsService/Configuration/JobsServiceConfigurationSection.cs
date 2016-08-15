@@ -1,4 +1,5 @@
 ﻿using System.Configuration;
+using static System.Int32;
 
 namespace Jobs.WindowsService.Configuration
 {
@@ -17,6 +18,18 @@ namespace Jobs.WindowsService.Configuration
 
         [ConfigurationProperty("name", IsRequired = true)]
         public string Name => this["name"] as string;
+
+        [ConfigurationProperty("secondsinterval", DefaultValue = "10")]
+        public int SecondsInterval
+        {
+            get
+            {
+                int secondsInterval;
+                return TryParse(this["secondsinterval"] as string, out secondsInterval)
+                           ? secondsInterval
+                           : 10;
+            }
+        }
 
         #endregion
 

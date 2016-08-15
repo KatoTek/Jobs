@@ -37,16 +37,12 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Encompass.Concepts, Version=3.12.16.319, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\KatoTek.Encompass.Concepts.3.12.16.319\lib\net40\Encompass.Concepts.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Encompass.Simple, Version=8.1.16.421, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\KatoTek.Encompass.Simple.8.1.16.421\lib\net40\Encompass.Simple.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Jobs.Runner, Version=7.3.16.519, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\KatoTek.Jobs.Runner.7.3.16.519\lib\net40\Jobs.Runner.dll</HintPath>
+    <Reference Include="Jobs.Runner, Version=8.5.16.815, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\KatoTek.Jobs.Runner.8.5.16.815\lib\net45\Jobs.Runner.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

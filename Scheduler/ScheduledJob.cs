@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Jobs.Runner;
 using Jobs.Scheduler.Exceptions;
 using Jobs.Scheduler.Extensions;
@@ -9,6 +11,7 @@ using static System.Configuration.ConfigurationManager;
 using static System.DateTime;
 using static System.DayOfWeek;
 using static System.Enum;
+using static System.Threading.Tasks.Task;
 using static Jobs.Scheduler.ScheduledType;
 
 namespace Jobs.Scheduler
@@ -75,6 +78,7 @@ namespace Jobs.Scheduler
                     return _model;
 
                 ConnectionStringSettings connection;
+
                 try
                 {
                     connection = ConnectionStrings["JobSchedulerConnection"];
@@ -109,24 +113,44 @@ namespace Jobs.Scheduler
 
         #region methods
 
-        public override void Run(bool forceRun)
+        public override async Task RunAsync(bool forceRun, CancellationToken cancellationToken)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(ScheduledJob));
 
-            if (!forceRun && !ValidateSchedule())
+            if (cancellationToken.IsCancellationRequested)
+            {
+                InvokeLog($"\t\t{JobSchedulerJobName} was cancelled");
+                cancellationToken.ThrowIfCancellationRequested();
                 return;
+            }
+
+            if (!forceRun && !ValidateSchedule())
+            {
+                InvokeLog($"\t\t{JobSchedulerJobName} not scheduled to work at this time");
+                return;
+            }
 
             ExceptionThrown += LogException;
             CreateJobInstance();
+            InvokeLog($"\t\t{JobSchedulerJobName} started scheduled work");
+
             try
             {
-                ScheduledWork();
+                await ScheduledWorkAsync(cancellationToken);
+
                 lock (JobSchedulerModelLocker)
                 {
-                    Job.LastRun = Model.GetDateTime();
+                    if (!forceRun)
+                        Job.LastRun = Model.GetDateTime();
+
                     Model.SaveChanges();
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                InvokeLog($"\t\t{JobSchedulerJobName} was cancelled");
+                throw;
             }
             catch (Exception exception)
             {
@@ -146,6 +170,8 @@ namespace Jobs.Scheduler
             finally
             {
                 CloseJobInstance();
+                InvokeLog($"\t\t{JobSchedulerJobName} finished scheduled work");
+
                 ExceptionThrown -= LogException;
             }
         }
@@ -169,7 +195,7 @@ namespace Jobs.Scheduler
             base.Dispose(disposing);
         }
 
-        protected abstract void ScheduledWork();
+        protected virtual async Task ScheduledWorkAsync(CancellationToken cancellationToken) => await Delay(1000, cancellationToken);
 
         static bool DayOfWeekQualifies(JobSchedule schedule, DateTime datetime)
         {

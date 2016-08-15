@@ -1,8 +1,6 @@
 ﻿using System.ComponentModel;
-using System.Configuration;
 using System.Configuration.Install;
 using System.ServiceProcess;
-using static System.Reflection.Assembly;
 using static System.ServiceProcess.ServiceStartMode;
 using static Jobs.WindowsService.Configuration.JobsServiceConfigurationSection;
 using static Jobs.WindowsService.Service;
@@ -30,14 +28,6 @@ namespace Jobs.WindowsService
                                     }
                                 });
         }
-
-        #endregion
-
-        #region methods
-
-        string GetAppSetting(string key) => ConfigurationManager.OpenExeConfiguration(GetAssembly(GetType())
-                                                                                          .Location)
-                                                                .AppSettings.Settings[key].Value;
 
         #endregion
     }

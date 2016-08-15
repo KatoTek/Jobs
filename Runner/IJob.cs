@@ -1,21 +1,16 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Jobs.Runner
 {
-    public interface IJob : IDisposable
+    public interface IJob : IExceptionThrown, IILog, IDisposable
     {
-        #region events
-
-        event JobExceptionThrownEventHandler ExceptionThrown;
-        event Action<string> Log;
-
-        #endregion
-
         #region methods
 
         System.Configuration.Configuration GetConfiguration();
-        void Run();
-        void Run(bool forceRun);
+        Task RunAsync(CancellationToken cancellationToken);
+        Task RunAsync(bool forceRun, CancellationToken cancellationToken);
 
         #endregion
     }

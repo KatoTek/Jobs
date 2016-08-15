@@ -3,28 +3,29 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Encompass.Simple.Extensions;
 using static System.Configuration.ConfigurationManager;
 using static System.Configuration.ConfigurationSaveMode;
 using static System.Configuration.ConfigurationUserLevel;
 using static System.Environment;
 using static System.GC;
-using static System.String;
-#if !DEBUG
-using static System.Threading.Tasks.Parallel;
+using static System.Threading.Tasks.Task;
 
+#if !DEBUG
 #endif
 
 namespace Jobs.Runner
 {
-    class Batch : IDisposable
+    class Batch : IExceptionThrown, IILog, IDisposable
     {
         #region fields
 
-        const string ERRORED = "ERRORED";
-        const string FINISHED = "FINISHED";
-        const string JOB_FORMAT = "---- JOB {1} {0} ----";
-        const string STARTED = "STARTED";
+        const string ERRORED = "Errored";
+        const string FINISHED = "Finished";
+        const string CANCELLED = "Cancelled";
+        const string STARTED = "Started";
         readonly List<JobExceptionThrownEventHandler> _jobExceptionThrownEventHandlers = new List<JobExceptionThrownEventHandler>();
         readonly List<Action<string>> _logHandlers = new List<Action<string>>();
         List<KeyValueConfigurationElement> _appSettings = new List<KeyValueConfigurationElement>();
@@ -95,7 +96,7 @@ namespace Jobs.Runner
             SuppressFinalize(this);
         }
 
-        internal void Run()
+        internal void Run(CancellationToken cancellationToken)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(Batch));
@@ -104,18 +105,8 @@ namespace Jobs.Runner
             {
                 LoadConfiguration();
 
-#if DEBUG
-                try
-                {
-                    _jobs.ForEach(RunJob);
-                }
-                catch
-                {
-                    // ignored
-                }
-#else
-                ForEach(_jobs, RunJob);
-#endif
+                WaitAll(_jobs.Select(_ => RunJobAsync(_, cancellationToken))
+                             .ToArray());
             }
             finally
             {
@@ -176,32 +167,35 @@ namespace Jobs.Runner
             RefreshSection("appSettings");
         }
 
-        void RunJob(IJob job)
+        async Task RunJobAsync(IJob job, CancellationToken cancellationToken)
         {
-            job.Log += InvokeLog;
-            job.ExceptionThrown += InvokeExceptionThrown;
-
             var jobtype = job.GetType()
                              .FullName;
 
+            job.Log += InvokeLog;
+            job.ExceptionThrown += InvokeExceptionThrown;
+
             try
             {
-                InvokeLog(Format(JOB_FORMAT, STARTED, jobtype));
-
-                job.Run();
+                InvokeLog($"\t\tJob {jobtype} {STARTED}");
+                await job.RunAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                InvokeLog($"\t\tJob {jobtype} {CANCELLED}");
             }
             catch (Exception exception)
             {
-                InvokeLog(Format(JOB_FORMAT, ERRORED, jobtype));
+                InvokeLog($"\t\tJob {jobtype} {ERRORED}");
                 InvokeLog($"{jobtype} Exception{NewLine}{exception.ToText()}");
-                InvokeExceptionThrown(job, new JobExceptionThrownEventArguments {Exception = exception, Job = job});
+                InvokeExceptionThrown(job, new JobExceptionThrownEventArguments { Exception = exception, Job = job });
             }
             finally
             {
                 job.ExceptionThrown -= InvokeExceptionThrown;
                 job.Log -= InvokeLog;
 
-                InvokeLog(Format(JOB_FORMAT, FINISHED, jobtype));
+                InvokeLog($"\t\tJob {jobtype} {FINISHED}");
 
                 job.Dispose();
             }

@@ -1,5 +1,5 @@
-﻿using System;
-using Jobs.WindowsService;
+﻿using Jobs.WindowsService;
+using static System.Console;
 
 namespace Jobs.ConsoleApp
 {
@@ -7,31 +7,17 @@ namespace Jobs.ConsoleApp
     {
         #region methods
 
-        static void Main() => new JobsService().SimulateStart();
-
-        #endregion
-
-        #region nested types
-
-        public class JobsService : Service
+        static void Main()
         {
-            #region methods
-
-            public void SimulateStart() => OnStart(new[] { "wait", "debug" });
-
-            protected override void OnStart(string[] args)
+            using (var service = new Service())
             {
-                Log += Console.WriteLine;
-                base.OnStart(args);
+                service.Log += WriteLine;
+                service.Launch();
+                WriteLine("Press [Enter] to quit!");
+                ReadLine();
+                service.Break();
+                service.Log -= WriteLine;
             }
-
-            protected override void OnStop()
-            {
-                base.OnStop();
-                Log += Console.WriteLine;
-            }
-
-            #endregion
         }
 
         #endregion

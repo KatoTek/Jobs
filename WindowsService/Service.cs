@@ -2,31 +2,29 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
-using Encompass.Concepts.Mail;
 using Jobs.Runner;
 using Jobs.WindowsService.Configuration;
+using static System.Diagnostics.EventLog;
+using static System.Threading.Tasks.Task;
+using static Jobs.WindowsService.Configuration.JobsServiceConfigurationSection;
 
 namespace Jobs.WindowsService
 {
-    public partial class Service : ServiceBase
+    public partial class Service : ServiceBase, IExceptionThrown, IILog
     {
         #region fields
 
-        const string WAIT = "wait";
-        const string MAIL_SECTION = "jobs.service.mail";
-        internal static string ServiceSection = "jobs.service";
+        internal static string ServiceSection = "jobs.windowsservice";
+        readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         readonly List<JobExceptionThrownEventHandler> _jobExceptionThrownEventHandlers = new List<JobExceptionThrownEventHandler>();
         readonly JobsServiceConfigurationSection _jobsServiceConfig;
         readonly List<Action<string>> _logHandlers = new List<Action<string>>();
-        readonly ManualResetEvent _shutdownEvent = new ManualResetEvent(false);
         bool _disposed;
         EventLog _eventLog;
         Task _task;
-        bool _wait;
 
         #endregion
 
@@ -36,7 +34,10 @@ namespace Jobs.WindowsService
         {
             InitializeComponent();
 
-            _jobsServiceConfig = JobsServiceConfigurationSection.GetSection(ServiceSection);
+            CanPauseAndContinue = true;
+            CanShutdown = true;
+
+            _jobsServiceConfig = GetSection(ServiceSection);
         }
 
         #endregion
@@ -87,6 +88,38 @@ namespace Jobs.WindowsService
 
         #region methods
 
+        public void Break(string state = "Stopped")
+        {
+            _cancellationTokenSource.Cancel();
+            _task?.Wait();
+
+            InvokeLog($"Service {state}");
+
+            if (_eventLog != null)
+                Log -= _eventLog.WriteEntry;
+        }
+
+        [SuppressMessage("ReSharper", "FunctionNeverReturns")]
+        public void Launch(string state = "Started")
+        {
+            if (_eventLog != null)
+                Log += _eventLog.WriteEntry;
+
+            InvokeLog($"Service {state}");
+            _task = Task.Run(async () =>
+                                   {
+                                       while (!_cancellationTokenSource.IsCancellationRequested)
+                                       {
+                                           DoWork(_cancellationTokenSource.Token);
+                                           try
+                                           {
+                                               await Delay(_jobsServiceConfig.SecondsInterval*1000, _cancellationTokenSource.Token);
+                                           }
+                                           catch (OperationCanceledException) {}
+                                       }
+                                   });
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (_disposed)
@@ -102,61 +135,55 @@ namespace Jobs.WindowsService
             base.Dispose(disposing);
         }
 
+        protected override void OnContinue()
+        {
+            Launch("Continued");
+            base.OnContinue();
+        }
+
+        protected override void OnPause()
+        {
+            Break("Paused");
+            base.OnPause();
+        }
+
+        protected override void OnShutdown()
+        {
+            Break();
+            base.OnShutdown();
+        }
+
         protected override void OnStart(string[] args)
         {
-            foreach (var arg in args.TakeWhile(_ => !_wait))
-                _wait = arg.Equals(WAIT, StringComparison.CurrentCultureIgnoreCase);
-
             _eventLog = new EventLog { Source = _jobsServiceConfig.Log.Source, Log = _jobsServiceConfig.Log.Name };
 
-            if (!EventLog.SourceExists(_eventLog.Source))
-                EventLog.CreateEventSource(_eventLog.Source, _eventLog.Log);
+            if (!SourceExists(_eventLog.Source))
+                CreateEventSource(_eventLog.Source, _eventLog.Log);
 
-            ExceptionThrown += InvokeExceptionThrown;
-            ExceptionThrown += MailException;
-            Log += InvokeLog;
-            Log += _eventLog.WriteEntry;
-
-            InvokeLog("Service Started");
-            _task = Task.Factory.StartNew(DoWork);
-
-            if (_wait)
-                _task.Wait();
+            Launch();
+            base.OnStart(args);
         }
 
         protected override void OnStop()
         {
-            _shutdownEvent.Set();
-            Task.WaitAll(_task);
-            InvokeLog("Service Stopped");
-
-            ExceptionThrown -= InvokeExceptionThrown;
-            ExceptionThrown -= MailException;
-            Log -= InvokeLog;
-            Log -= _eventLog.WriteEntry;
+            Break();
+            base.OnStop();
         }
 
-        static void MailException(object sender, JobExceptionThrownEventArguments args) => Mailer.Send(args.Exception, MAIL_SECTION);
-
-        void DoWork()
+        void DoWork(CancellationToken cancellationToken)
         {
-            while (!_shutdownEvent.WaitOne(0))
+            using (var runner = new Runner.Runner())
             {
-                Thread.Sleep(1000);
-
-                using (var runner = new Runner.Runner())
+                try
                 {
-                    try
-                    {
-                        runner.Log += InvokeLog;
-                        runner.ExceptionThrown += InvokeExceptionThrown;
-                        runner.Run();
-                    }
-                    finally
-                    {
-                        runner.ExceptionThrown -= InvokeExceptionThrown;
-                        runner.Log -= InvokeLog;
-                    }
+                    runner.Log += InvokeLog;
+                    runner.ExceptionThrown += InvokeExceptionThrown;
+                    runner.Run(cancellationToken);
+                }
+                finally
+                {
+                    runner.ExceptionThrown -= InvokeExceptionThrown;
+                    runner.Log -= InvokeLog;
                 }
             }
         }

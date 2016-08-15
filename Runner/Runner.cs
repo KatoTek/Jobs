@@ -4,6 +4,7 @@ using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading;
 using Jobs.Runner.Configuration;
 using Jobs.Runner.Configuration.Exceptions;
 using static System.GC;
@@ -14,11 +15,14 @@ using static Jobs.Runner.Configuration.JobRunnerConfigurationSection;
 
 namespace Jobs.Runner
 {
-    public sealed class Runner : IDisposable
+    public sealed class Runner : IExceptionThrown, IILog, IDisposable
     {
         #region fields
 
         const string RUNNER_SECTION = "jobs.runner";
+        const string FINISHED = "Finished";
+        const string STARTED = "Started";
+        const string BATCH = "Batch";
         readonly CompositionContainer _compositionContainer;
         readonly List<DirectoryCatalog> _directoryCatalogs = new List<DirectoryCatalog>();
         readonly List<JobExceptionThrownEventHandler> _jobExceptionThrownEventHandlers = new List<JobExceptionThrownEventHandler>();
@@ -119,7 +123,7 @@ namespace Jobs.Runner
             SuppressFinalize(this);
         }
 
-        public void Run()
+        public void Run(CancellationToken cancellationToken)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(Runner));
@@ -128,14 +132,15 @@ namespace Jobs.Runner
 
             var batchNum = 0;
 
-            InvokeLog("= JOBS.RUNNER STARTED =");
+            InvokeLog($"{GetType() .FullName} {STARTED}");
+
             foreach (var batch in BatchJobs())
             {
                 try
                 {
-                    InvokeLog($"== JOBS.RUNNER BATCH {batchNum++} STARTED ==");
+                    InvokeLog($"\t{GetType() .FullName} {BATCH} {++batchNum} {STARTED}");
 
-                    batch.Run();
+                    batch.Run(cancellationToken);
                 }
                 finally
                 {
@@ -143,10 +148,11 @@ namespace Jobs.Runner
                     batch.Log -= InvokeLog;
                     batch.Dispose();
 
-                    InvokeLog($"== JOBS.RUNNER BATCH {batchNum} FINISHED ==");
+                    InvokeLog($"\t{GetType() .FullName} {BATCH} {batchNum} {FINISHED}");
                 }
             }
-            InvokeLog("= JOBS.RUNNER FINISHED =");
+
+            InvokeLog($"{GetType() .FullName} {FINISHED}");
         }
 
         IEnumerable<Batch> BatchJobs()

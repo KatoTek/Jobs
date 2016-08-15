@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Jobs.Runner</RootNamespace>
     <AssemblyName>Jobs.Runner</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SccProjectName>SAK</SccProjectName>
     <SccLocalPath>SAK</SccLocalPath>
@@ -27,6 +27,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -35,12 +36,9 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Encompass.Concepts, Version=3.12.16.319, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\KatoTek.Encompass.Concepts.3.12.16.319\lib\net40\Encompass.Concepts.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Encompass.Simple, Version=8.1.16.421, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\KatoTek.Encompass.Simple.8.1.16.421\lib\net40\Encompass.Simple.dll</HintPath>
       <Private>True</Private>
@@ -62,6 +60,10 @@
     <Compile Include="Configuration\JobRunnerConfigurationSection.cs" />
     <Compile Include="Configuration\PluginPath.cs" />
     <Compile Include="Configuration\Exceptions\ConfigurationSectionMissingException.cs" />
+    <Compile Include="ContinueCheckEventArguments.cs" />
+    <Compile Include="ContinueCheckEventHandler.cs" />
+    <Compile Include="IExceptionThrown.cs" />
+    <Compile Include="IILog.cs" />
     <Compile Include="JobExceptionThrownEventArguments.cs" />
     <Compile Include="JobExceptionThrownEventHandler.cs" />
     <Compile Include="IJob.cs" />
