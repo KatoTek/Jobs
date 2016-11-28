@@ -19,6 +19,7 @@ namespace Jobs.WindowsService
 
         internal static string ServiceSection = "jobs.windowsservice";
         readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        readonly List<EventHandler> _cancelledHandlers = new List<EventHandler>();
         readonly List<JobExceptionThrownEventHandler> _jobExceptionThrownEventHandlers = new List<JobExceptionThrownEventHandler>();
         readonly JobsServiceConfigurationSection _jobsServiceConfig;
         readonly List<Action<string>> _logHandlers = new List<Action<string>>();
@@ -34,7 +35,7 @@ namespace Jobs.WindowsService
         {
             InitializeComponent();
 
-            CanPauseAndContinue = true;
+            CanPauseAndContinue = false;
             CanShutdown = true;
 
             _jobsServiceConfig = GetSection(ServiceSection);
@@ -43,6 +44,23 @@ namespace Jobs.WindowsService
         #endregion
 
         #region events
+
+        public event EventHandler Cancelled
+        {
+            add
+            {
+                if (_cancelledHandlers.Contains(value))
+                    return;
+
+                _cancelled += value;
+                _cancelledHandlers.Add(value);
+            }
+            remove
+            {
+                _cancelled -= value;
+                _cancelledHandlers.Remove(value);
+            }
+        }
 
         public event JobExceptionThrownEventHandler ExceptionThrown
         {
@@ -79,6 +97,9 @@ namespace Jobs.WindowsService
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
+        event EventHandler _cancelled;
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
         event JobExceptionThrownEventHandler _exceptionThrown;
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -88,7 +109,7 @@ namespace Jobs.WindowsService
 
         #region methods
 
-        public void Break(string state = "Stopped")
+        public void Cancel(string state = "Stopped")
         {
             _cancellationTokenSource.Cancel();
             _task?.Wait();
@@ -97,6 +118,8 @@ namespace Jobs.WindowsService
 
             if (_eventLog != null)
                 Log -= _eventLog.WriteEntry;
+
+            InvokeCancelled();
         }
 
         [SuppressMessage("ReSharper", "FunctionNeverReturns")]
@@ -107,17 +130,17 @@ namespace Jobs.WindowsService
 
             InvokeLog($"Service {state}");
             _task = Task.Run(async () =>
-                                   {
-                                       while (!_cancellationTokenSource.IsCancellationRequested)
-                                       {
-                                           DoWork(_cancellationTokenSource.Token);
-                                           try
-                                           {
-                                               await Delay(_jobsServiceConfig.SecondsInterval*1000, _cancellationTokenSource.Token);
-                                           }
-                                           catch (OperationCanceledException) {}
-                                       }
-                                   });
+                             {
+                                 while (!_cancellationTokenSource.IsCancellationRequested)
+                                 {
+                                     await DoWorkAsync(_cancellationTokenSource.Token);
+                                     try
+                                     {
+                                         await Delay(_jobsServiceConfig.SecondsInterval*1000, _cancellationTokenSource.Token);
+                                     }
+                                     catch (OperationCanceledException) {}
+                                 }
+                             });
         }
 
         protected override void Dispose(bool disposing)
@@ -135,21 +158,9 @@ namespace Jobs.WindowsService
             base.Dispose(disposing);
         }
 
-        protected override void OnContinue()
-        {
-            Launch("Continued");
-            base.OnContinue();
-        }
-
-        protected override void OnPause()
-        {
-            Break("Paused");
-            base.OnPause();
-        }
-
         protected override void OnShutdown()
         {
-            Break();
+            Cancel();
             base.OnShutdown();
         }
 
@@ -166,11 +177,11 @@ namespace Jobs.WindowsService
 
         protected override void OnStop()
         {
-            Break();
+            Cancel();
             base.OnStop();
         }
 
-        void DoWork(CancellationToken cancellationToken)
+        async Task DoWorkAsync(CancellationToken cancellationToken)
         {
             using (var runner = new Runner.Runner())
             {
@@ -178,7 +189,7 @@ namespace Jobs.WindowsService
                 {
                     runner.Log += InvokeLog;
                     runner.ExceptionThrown += InvokeExceptionThrown;
-                    runner.Run(cancellationToken);
+                    await runner.RunAsync(cancellationToken);
                 }
                 finally
                 {
@@ -188,6 +199,7 @@ namespace Jobs.WindowsService
             }
         }
 
+        void InvokeCancelled() => _cancelled?.Invoke(this, default(EventArgs));
         void InvokeExceptionThrown(object sender, JobExceptionThrownEventArguments args) => _exceptionThrown?.Invoke(sender, args);
         void InvokeLog(string message) => _log?.Invoke(message);
 

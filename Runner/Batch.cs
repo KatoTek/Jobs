@@ -96,7 +96,7 @@ namespace Jobs.Runner
             SuppressFinalize(this);
         }
 
-        internal void Run(CancellationToken cancellationToken)
+        internal async Task RunAsync(CancellationToken cancellationToken)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(Batch));
@@ -105,8 +105,8 @@ namespace Jobs.Runner
             {
                 LoadConfiguration();
 
-                WaitAll(_jobs.Select(_ => RunJobAsync(_, cancellationToken))
-                             .ToArray());
+                await WhenAll(_jobs.Select(async _ => await RunJobAsync(_, cancellationToken))
+                                   .ToArray());
             }
             finally
             {
@@ -133,7 +133,6 @@ namespace Jobs.Runner
                 return;
 
             if (disposing)
-            {
                 if (_jobs != null)
                 {
                     foreach (var job in _jobs)
@@ -141,7 +140,6 @@ namespace Jobs.Runner
 
                     _jobs = null;
                 }
-            }
 
             _appSettings = null;
             _connectionStrings = null;

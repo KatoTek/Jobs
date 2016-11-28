@@ -5,6 +5,7 @@ using System.ComponentModel.Composition.Hosting;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Jobs.Runner.Configuration;
 using Jobs.Runner.Configuration.Exceptions;
 using static System.GC;
@@ -40,7 +41,6 @@ namespace Jobs.Runner
 
             var jobrunnerConfig = GetSection(RunnerSection);
             if (jobrunnerConfig != null)
-            {
                 foreach (var directoryCatalog in
                     from PluginPath pluginpath in jobrunnerConfig.PluginPaths
                     where Exists($@"{GetDirectoryName(GetExecutingAssembly()
@@ -50,7 +50,6 @@ namespace Jobs.Runner
                     _directoryCatalogs.Add(directoryCatalog);
                     aggregateCatalog.Catalogs.Add(directoryCatalog);
                 }
-            }
             else
                 throw new ConfigurationSectionMissingException(RunnerSection);
 
@@ -123,7 +122,7 @@ namespace Jobs.Runner
             SuppressFinalize(this);
         }
 
-        public void Run(CancellationToken cancellationToken)
+        public async Task RunAsync(CancellationToken cancellationToken)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(Runner));
@@ -135,12 +134,11 @@ namespace Jobs.Runner
             InvokeLog($"{GetType() .FullName} {STARTED}");
 
             foreach (var batch in BatchJobs())
-            {
                 try
                 {
                     InvokeLog($"\t{GetType() .FullName} {BATCH} {++batchNum} {STARTED}");
 
-                    batch.Run(cancellationToken);
+                    await batch.RunAsync(cancellationToken);
                 }
                 finally
                 {
@@ -150,7 +148,6 @@ namespace Jobs.Runner
 
                     InvokeLog($"\t{GetType() .FullName} {BATCH} {batchNum} {FINISHED}");
                 }
-            }
 
             InvokeLog($"{GetType() .FullName} {FINISHED}");
         }
