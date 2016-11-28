@@ -169,7 +169,16 @@ namespace Jobs.WindowsService
             _eventLog = new EventLog { Source = _jobsServiceConfig.Log.Source, Log = _jobsServiceConfig.Log.Name };
 
             if (!SourceExists(_eventLog.Source))
-                CreateEventSource(_eventLog.Source, _eventLog.Log);
+            {
+                try
+                {
+                    CreateEventSource(_eventLog.Source, _eventLog.Log);
+                }
+                catch
+                {
+                    _eventLog = null;
+                }
+            }
 
             Launch();
             base.OnStart(args);
